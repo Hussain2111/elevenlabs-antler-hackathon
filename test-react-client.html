@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React App Test Client - Real-time Audio & Transcript</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        
+        .status-indicator.connected {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-text {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.2rem;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .audio-visualizer {
+            height: 100px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .audio-bars {
+            display: flex;
+            gap: 3px;
+            height: 60px;
+            align-items: flex-end;
+        }
+        
+        .audio-bar {
+            width: 4px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        .audio-bar:nth-child(2) { animation-delay: 0.1s; }
+        .audio-bar:nth-child(3) { animation-delay: 0.2s; }
+        .audio-bar:nth-child(4) { animation-delay: 0.3s; }
+        .audio-bar:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 100% { height: 20px; }
+            50% { height: 60px; }
+        }
+        
+        .transcript-container {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .transcript-entry {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .transcript-speaker {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .transcript-text {
+            color: #374151;
+            line-height: 1.5;
+        }
+        
+        .transcript-time {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .no-data {
+            color: #9ca3af;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎧 React App Test Client</h1>
+        <p class="subtitle">Receiving real-time audio and transcripts from the GP Surgery AI Assistant</p>
+        
+        <div class="status">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span class="status-text" id="statusText">Disconnected</span>
+            <button class="connect-btn" id="connectBtn" onclick="toggleConnection()">Connect</button>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">
+                🔊 Audio Stream
+            </h2>
+            <div class="audio-visualizer" id="audioVisualizer">
+                <div class="audio-bars" id="audioBars" style="display: none;">
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                </div>
+                <div class="no-data" id="audioNoData">No audio data yet</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">
+                📝 Live Transcripts
+            </h2>
+            <div class="transcript-container" id="transcriptContainer">
+                <div class="no-data">No transcripts yet</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="audioChunks">0</div>
+                <div class="stat-label">Audio Chunks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="transcriptCount">0</div>
+                <div class="stat-label">Transcripts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="dataRate">0 KB/s</div>
+                <div class="stat-label">Data Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uptime">00:00</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let stats = {
+            audioChunks: 0,
+            transcripts: 0,
+            bytesReceived: 0,
+            startTime: null
+        };
+        let uptimeInterval = null;
+        
+        function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+        
+        function connect() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            
+            statusText.textContent = 'Connecting...';
+            connectBtn.disabled = true;
+            
+            // Connect to the downstream WebSocket
+            ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = () => {
+                isConnected = true;
+                statusIndicator.classList.add('connected');
+                statusText.textContent = 'Connected to stream';
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.disabled = false;
+                
+                stats.startTime = Date.now();
+                startUptimeCounter();
+                
+                console.log('Connected to downstream WebSocket');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    stats.bytesReceived += event.data.length;
+                    
+                    // Only log transcripts, not audio chunks
+                    if (data.type === 'transcript') {
+                        console.log('Transcript received:', data.data.text);
+                    }
+                    
+                    if (data.type === 'audio') {
+                        handleAudioData(data);
+                    } else if (data.type === 'transcript') {
+                        handleTranscriptData(data);
+                    } else if (data.type === 'call_ended') {
+                        handleCallEnd(data);
+                    } else {
+                        console.log('Unknown message type:', data.type, data);
+                    }
+                    
+                    updateDataRate();
+                } catch (error) {
+                    console.error('Error parsing message:', error, 'Raw data:', event.data);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusText.textContent = 'Connection error';
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                statusIndicator.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                connectBtn.textContent = 'Connect';
+                connectBtn.disabled = false;
+                stopUptimeCounter();
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+        
+        function handleAudioData(data) {
+            stats.audioChunks++;
+            document.getElementById('audioChunks').textContent = stats.audioChunks;
+            
+            // Show audio visualization
+            const audioBars = document.getElementById('audioBars');
+            const audioNoData = document.getElementById('audioNoData');
+            audioBars.style.display = 'flex';
+            audioNoData.style.display = 'none';
+            
+            // Animate bars based on audio data amplitude
+            if (data.data && data.data.length > 0) {
+                const audioArray = new Int16Array(data.data);
+                const amplitude = calculateAmplitude(audioArray);
+                animateAudioBars(amplitude);
+            }
+            
+            // Only log audio chunks periodically to avoid spam
+            if (stats.audioChunks % 100 === 0) {
+                console.log('Received audio chunk #' + stats.audioChunks + ':', data.data.length, 'samples');
+            }
+        }
+        
+        function calculateAmplitude(audioData) {
+            let sum = 0;
+            for (let i = 0; i < audioData.length; i++) {
+                sum += Math.abs(audioData[i]);
+            }
+            return sum / audioData.length / 32768; // Normalize to 0-1
+        }
+        
+        function animateAudioBars(amplitude) {
+            const bars = document.querySelectorAll('.audio-bar');
+            bars.forEach((bar, index) => {
+                const height = Math.max(20, amplitude * 60 * (0.5 + Math.random() * 0.5));
+                bar.style.height = `${height}px`;
+                bar.style.animationDuration = `${0.8 + Math.random() * 0.4}s`;
+            });
+        }
+        
+        function handleTranscriptData(data) {
+            stats.transcripts++;
+            document.getElementById('transcriptCount').textContent = stats.transcripts;
+            
+            const container = document.getElementById('transcriptContainer');
+            
+            // Clear "no data" message if it's the first transcript
+            if (stats.transcripts === 1) {
+                container.innerHTML = '';
+            }
+            
+            // Create transcript entry
+            const entry = document.createElement('div');
+            entry.className = 'transcript-entry';
+            
+            const speaker = document.createElement('div');
+            speaker.className = 'transcript-speaker';
+            speaker.textContent = data.data.speaker || 'Unknown';
+            
+            const text = document.createElement('div');
+            text.className = 'transcript-text';
+            text.textContent = data.data.text;
+            
+            const time = document.createElement('div');
+            time.className = 'transcript-time';
+            time.textContent = new Date(data.timestamp).toLocaleTimeString();
+            
+            entry.appendChild(speaker);
+            entry.appendChild(text);
+            entry.appendChild(time);
+            
+            container.appendChild(entry);
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+            
+            console.log('Transcript #' + stats.transcripts + ':', data.data.text);
+        }
+        
+        function updateDataRate() {
+            if (!stats.startTime) return;
+            
+            const elapsed = (Date.now() - stats.startTime) / 1000;
+            const rate = (stats.bytesReceived / 1024 / elapsed).toFixed(1);
+            document.getElementById('dataRate').textContent = `${rate} KB/s`;
+        }
+        
+        function startUptimeCounter() {
+            uptimeInterval = setInterval(() => {
+                if (!stats.startTime) return;
+                
+                const elapsed = Math.floor((Date.now() - stats.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('uptime').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function stopUptimeCounter() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+                uptimeInterval = null;
+            }
+        }
+        
+        function handleCallEnd(data) {
+            console.log('Call ended signal received');
+            
+            // Hide audio visualization
+            const audioBars = document.getElementById('audioBars');
+            const audioNoData = document.getElementById('audioNoData');
+            audioBars.style.display = 'none';
+            audioNoData.style.display = 'block';
+            audioNoData.textContent = 'Call ended - no audio data';
+            
+            // Add a call end indicator to transcripts
+            const container = document.getElementById('transcriptContainer');
+            const endEntry = document.createElement('div');
+            endEntry.className = 'transcript-entry';
+            endEntry.style.background = '#fee2e2';
+            endEntry.style.borderLeft = '4px solid #ef4444';
+            
+            const endText = document.createElement('div');
+            endText.className = 'transcript-text';
+            endText.textContent = '--- Call Ended ---';
+            endText.style.textAlign = 'center';
+            endText.style.fontWeight = 'bold';
+            endText.style.color = '#dc2626';
+            
+            const endTime = document.createElement('div');
+            endTime.className = 'transcript-time';
+            endTime.textContent = new Date(data.timestamp).toLocaleTimeString();
+            
+            endEntry.appendChild(endText);
+            endEntry.appendChild(endTime);
+            container.appendChild(endEntry);
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Auto-connect on load for demo
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Auto-connecting to demonstrate functionality...');
+                // Uncomment to auto-connect:
+                // connect();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

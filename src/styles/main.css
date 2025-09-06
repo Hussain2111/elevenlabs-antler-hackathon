@@ -1,0 +1,760 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    line-height: 1.6;
+    color: #212529;
+    background-color: #ffffff;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Cookie Banner */
+.cookie-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #f8f9fa;
+    border-bottom: 2px solid #005eb8;
+    padding: 20px;
+    z-index: 10000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cookie-content {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.cookie-content h2 {
+    color: #005eb8;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.cookie-content p {
+    margin-bottom: 15px;
+    color: #425563;
+}
+
+.cookie-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #005eb8;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #004c93;
+}
+
+.btn-secondary {
+    background-color: #768692;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5c6975;
+}
+
+.btn-link {
+    color: #005eb8;
+    text-decoration: underline;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+/* Header */
+.site-header {
+    background: white;
+    border-bottom: 1px solid #d8dde0;
+}
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #005eb8;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nhs-logo {
+    background: #005eb8;
+    color: white;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 24px;
+    border-radius: 4px;
+}
+
+.surgery-info h1 {
+    font-size: 1.5rem;
+    color: #212529;
+    font-weight: 600;
+}
+
+.surgery-info p {
+    color: #768692;
+    font-size: 0.9rem;
+}
+
+.search-section {
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    width: 300px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #005eb8;
+    box-shadow: 0 0 0 3px rgba(0, 94, 184, 0.1);
+}
+
+.search-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #005eb8 0%, #004c93 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 94, 184, 0.3);
+}
+
+/* Navigation */
+.main-nav {
+    background: #005eb8;
+    padding: 0;
+}
+
+.main-nav ul {
+    display: flex;
+    list-style: none;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+.main-nav li {
+    flex: 1;
+    min-width: 120px;
+}
+
+.main-nav a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 15px 20px;
+    text-align: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background 0.3s;
+}
+
+.main-nav a:hover {
+    background: #004c93;
+}
+
+/* Banners */
+.translate-banner {
+    background: #f0f4f5;
+    padding: 10px;
+    text-align: center;
+}
+
+.translate-btn {
+    background: transparent;
+    border: 2px solid #005eb8;
+    color: #005eb8;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.nhs-app-banner {
+    background: #ffeb3b;
+    padding: 15px;
+    text-align: center;
+}
+
+.banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.banner-content strong {
+    margin-right: 10px;
+}
+
+.banner-content a {
+    color: #005eb8;
+    text-decoration: underline;
+}
+
+/* Main Content */
+.page-title {
+    font-size: 2.5rem;
+    color: #212529;
+    margin: 40px 0 30px;
+}
+
+/* Service Grid */
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 50px;
+}
+
+.service-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 30px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #005eb8 0%, #667eea 100%);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.service-card:hover {
+    border-color: #005eb8;
+    box-shadow: 0 8px 24px rgba(0, 94, 184, 0.12);
+    transform: translateY(-4px);
+}
+
+.service-card:hover::before {
+    transform: scaleX(1);
+}
+
+.service-card h2 {
+    color: #005eb8;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.service-card p {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Sections */
+section {
+    margin-bottom: 50px;
+}
+
+section h2 {
+    color: #212529;
+    font-size: 1.75rem;
+    margin-bottom: 20px;
+}
+
+.service-links ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.service-links a {
+    color: #005eb8;
+    text-decoration: underline;
+    display: block;
+    padding: 5px 0;
+}
+
+/* News Section */
+.news-items {
+    display: grid;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.news-item {
+    padding: 20px;
+    background: #f8f9fa;
+    border-left: 4px solid #005eb8;
+}
+
+.news-item h3 {
+    color: #005eb8;
+    margin-bottom: 10px;
+}
+
+.news-item time {
+    color: #768692;
+    font-size: 0.9rem;
+}
+
+.news-item p {
+    margin-top: 10px;
+    color: #425563;
+}
+
+/* Footer */
+.site-footer {
+    background: #212529;
+    color: white;
+    padding: 40px 0 20px;
+    margin-top: 80px;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.contact-info {
+    font-size: 0.95rem;
+}
+
+.contact-info address {
+    font-style: normal;
+    margin-bottom: 15px;
+    line-height: 1.8;
+}
+
+.directions-link {
+    color: #66b3ff;
+    text-decoration: underline;
+}
+
+.phone {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.footer-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+.footer-column ul {
+    list-style: none;
+}
+
+.footer-column a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    padding: 5px 0;
+    transition: color 0.3s;
+}
+
+.footer-column a:hover {
+    color: #66b3ff;
+}
+
+.footer-bottom {
+    border-top: 1px solid #495057;
+    padding-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-policies {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-policies a {
+    color: #adb5bd;
+    text-decoration: none;
+}
+
+/* Call Widget - ElevenLabs Style */
+.call-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    background: transparent;
+    border-radius: 50%;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: slideUp 0.3s ease-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.call-widget.active {
+    display: flex;
+}
+
+.call-widget.expanded {
+    width: 340px;
+    height: 200px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(10, 10, 10, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    padding: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px) scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.widget-body {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.widget-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+}
+
+/* Avatar and Animation */
+.avatar-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+    display: none;
+}
+
+.call-widget.expanded .avatar-container {
+    display: block;
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.avatar-icon {
+    width: 28px;
+    height: 28px;
+    color: white;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid rgba(102, 126, 234, 0.5);
+    animation: pulseRing 2s infinite;
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.4);
+        opacity: 0;
+    }
+}
+
+.call-widget.calling .pulse-ring {
+    animation: pulseRing 1s infinite;
+    border-color: rgba(40, 167, 69, 0.5);
+}
+
+.status-text {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    text-align: center;
+    opacity: 0.9;
+    display: none;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.call-widget.expanded .status-text {
+    display: block;
+}
+
+.call-timer {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.call-button {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* When expanded, make button smaller */
+.call-widget.expanded .call-button {
+    width: 48px;
+    height: 48px;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.call-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.call-button:active {
+    transform: scale(0.95);
+}
+
+.call-button.active {
+    background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+}
+
+.call-button.active:hover {
+    box-shadow: 0 8px 24px rgba(244, 63, 94, 0.4);
+}
+
+.call-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.call-button:active::before {
+    width: 120px;
+    height: 120px;
+}
+
+.phone-icon,
+.end-icon {
+    width: 24px;
+    height: 24px;
+    color: white;
+    position: relative;
+    z-index: 1;
+}
+
+/* When expanded, make icons smaller */
+.call-widget.expanded .phone-icon,
+.call-widget.expanded .end-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Widget Toggle Button - Hidden since widget is always visible */
+.widget-toggle {
+    display: none !important;
+}
+
+.chat-icon {
+    width: 28px;
+    height: 28px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    .main-nav ul {
+        flex-direction: column;
+    }
+
+    .main-nav a {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .service-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+    }
+
+    .call-widget {
+        width: 70px;
+        height: 70px;
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .call-widget.expanded {
+        width: calc(100% - 30px);
+        right: 15px;
+        left: 15px;
+        height: 160px;
+        padding: 16px;
+    }
+    
+    .avatar-container {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .avatar-circle {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .avatar-icon {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .call-button {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .call-widget.expanded .call-button {
+        width: 42px;
+        height: 42px;
+    }
+}
+

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antler Surgery - Demo Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #005eb8 0%, #004c93 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .service-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .service-card:hover {
+            border-color: #005eb8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 94, 184, 0.15);
+        }
+        
+        .service-card h3 {
+            color: #005eb8;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        
+        .service-card p {
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        
+        /* Call Widget */
+        .call-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+        
+        .call-widget:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .call-widget.expanded {
+            width: 320px;
+            height: 180px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+        }
+        
+        .call-widget.calling {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .widget-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            color: white;
+        }
+        
+        .call-status {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .call-widget.expanded .call-status {
+            opacity: 1;
+        }
+        
+        .call-timer {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: none;
+        }
+        
+        .call-widget.calling .call-timer {
+            display: block;
+        }
+        
+        .call-button {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .call-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .call-button.active {
+            background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+            border-color: transparent;
+        }
+        
+        .phone-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .demo-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 30px;
+            color: #856404;
+        }
+        
+        .demo-notice strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Antler Surgery</h1>
+            <p>NHS GP Surgery with AI Voice Assistant</p>
+        </div>
+        
+        <div class="content">
+            <div class="demo-notice">
+                <strong>Demo Mode</strong>
+                This is a simplified demo version. The call widget will simulate the voice assistant experience without requiring API keys.
+            </div>
+            
+            <div class="service-grid">
+                <div class="service-card">
+                    <h3>📅 Appointments</h3>
+                    <p>Find out how to make, change or cancel an appointment</p>
+                </div>
+                <div class="service-card">
+                    <h3>💊 Prescriptions</h3>
+                    <p>Get a repeat prescription, find a pharmacy or ask a prescription question</p>
+                </div>
+                <div class="service-card">
+                    <h3>📋 Sick notes</h3>
+                    <p>Get a sick (fit) note for work or find out about self-certification</p>
+                </div>
+                <div class="service-card">
+                    <h3>🧪 Test results</h3>
+                    <p>Get your recent test results and find out what to do next</p>
+                </div>
+                <div class="service-card">
+                    <h3>📝 Register with us</h3>
+                    <p>Find out how to register and if you live in our catchment area</p>
+                </div>
+                <div class="service-card">
+                    <h3>📞 Contact us</h3>
+                    <p>Find out how to contact the surgery and what to do when we are closed</p>
+                </div>
+                <div class="service-card">
+                    <h3>📱 NHS App</h3>
+                    <p>Access NHS Health Benefits and Services</p>
+                </div>
+                <div class="service-card">
+                    <h3>🏪 Pharmacy First</h3>
+                    <p>Self Refer For A Minor Illness</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call Widget -->
+    <div class="call-widget" id="callWidget" onclick="toggleCall()">
+        <div class="widget-content">
+            <div class="call-status" id="callStatus">AI Assistant</div>
+            <div class="call-timer" id="callTimer">00:00</div>
+            <div class="call-button" id="callButton">
+                <svg class="phone-icon" viewBox="0 0 24 24">
+                    <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isCallActive = false;
+        let callTimer = null;
+        let callStartTime = null;
+        
+        function toggleCall() {
+            if (isCallActive) {
+                endCall();
+            } else {
+                startCall();
+            }
+        }
+        
+        function startCall() {
+            const widget = document.getElementById('callWidget');
+            const status = document.getElementById('callStatus');
+            const button = document.getElementById('callButton');
+            const timer = document.getElementById('callTimer');
+            
+            isCallActive = true;
+            
+            // Expand widget
+            widget.classList.add('expanded');
+            widget.classList.add('calling');
+            button.classList.add('active');
+            
+            // Update status
+            status.textContent = 'Connecting...';
+            
+            // Simulate connection
+            setTimeout(() => {
+                status.textContent = 'Call in progress';
+                startCallTimer();
+                
+                // Simulate some activity
+                simulateCallActivity();
+            }, 2000);
+        }
+        
+        function endCall() {
+            const widget = document.getElementById('callWidget');
+            const status = document.getElementById('callStatus');
+            const button = document.getElementById('callButton');
+            const timer = document.getElementById('callTimer');
+            
+            isCallActive = false;
+            
+            // Reset widget
+            widget.classList.remove('expanded');
+            widget.classList.remove('calling');
+            button.classList.remove('active');
+            
+            status.textContent = 'AI Assistant';
+            
+            // Stop timer
+            stopCallTimer();
+        }
+        
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('callTimer').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function stopCallTimer() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+            callStartTime = null;
+            document.getElementById('callTimer').textContent = '00:00';
+        }
+        
+        function simulateCallActivity() {
+            if (!isCallActive) return;
+            
+            // Simulate some visual feedback
+            const widget = document.getElementById('callWidget');
+            widget.style.boxShadow = '0 12px 40px rgba(102, 126, 234, 0.6)';
+            
+            setTimeout(() => {
+                if (isCallActive) {
+                    widget.style.boxShadow = '0 8px 32px rgba(102, 126, 234, 0.3)';
+                }
+            }, 500);
+            
+            // Continue simulation
+            setTimeout(() => simulateCallActivity(), 2000);
+        }
+    </script>
+</body>
+</html>
