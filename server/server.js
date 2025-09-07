@@ -65,8 +65,36 @@ app.get('/api/deepgram/token', (req, res) => {
     }
 });
 
+// Detect if we're running in Azure Container Apps or other cloud environment
+const isProduction = process.env.NODE_ENV === 'production' || 
+                    process.env.WEBSITES_ENABLE_APP_SERVICE_STORAGE || 
+                    process.env.CONTAINER_APP_NAME ||
+                    process.env.PORT;
+
+// Start server first
+const httpServer = app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Is Production: ${isProduction}`);
+    
+    if (isProduction) {
+        console.log(`WebSocket server running on same port: ${PORT}`);
+    } else {
+        console.log(`Downstream WebSocket server running on ws://localhost:8080`);
+    }
+    
+    console.log('\nConfiguration status:');
+    console.log(`- Synthflow API Key: ${process.env.SYNTHFLOW_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`- Synthflow Assistant ID: ${process.env.SYNTHFLOW_ASSISTANT_ID ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`- Deepgram API Key: ${process.env.DEEPGRAM_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log('\nPlease ensure all API keys are configured in the .env file');
+});
+
 // WebSocket server for downstream connections
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ 
+    port: isProduction ? undefined : 8080,
+    server: isProduction ? httpServer : undefined
+});
 
 wss.on('connection', (ws) => {
     console.log('Downstream client connected');
@@ -77,9 +105,9 @@ wss.on('connection', (ws) => {
         // Handle messages from the main app if needed
         try {
             const data = JSON.parse(message.toString());
-            // Only log transcript messages, not audio chunks
-            if (data.type === 'transcript') {
-                console.log('Received transcript from downstream:', data.data.text);
+            // Only log transcript messages in development or for long transcripts
+            if (data.type === 'transcript' && (!isProduction || data.data.text.length > 50)) {
+                console.log('Received transcript from downstream');
             }
             
             // If it's from the main app, broadcast to all other clients
@@ -100,11 +128,18 @@ wss.on('connection', (ws) => {
 
 // Broadcast function for sending data to all connected downstream clients
 function broadcastToDownstream(data, excludeClient = null) {
+    let sentCount = 0;
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && client !== excludeClient) {
             client.send(JSON.stringify(data));
+            sentCount++;
         }
     });
+    
+    // Only log transcript broadcasts in development or important events
+    if (data.type === 'transcript' && (!isProduction || data.data.text.length > 50)) {
+        console.log(`Broadcasting transcript to ${sentCount} clients`);
+    }
 }
 
 // Health check endpoint
@@ -121,9 +156,18 @@ app.get('/api/health', (req, res) => {
 
 // Configuration endpoint (for frontend to get non-sensitive config)
 app.get('/api/config', (req, res) => {
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
+    
+    // In production (Azure), WebSocket runs on same port as HTTP
+    const wsUrl = isProduction
+        ? `${wsProtocol}://${host}`
+        : 'ws://localhost:8080';
+    
     res.json({
         synthflowAssistantId: process.env.SYNTHFLOW_ASSISTANT_ID || '',
-        downstreamWebSocketUrl: `ws://localhost:8080`
+        downstreamWebSocketUrl: wsUrl
     });
 });
 
@@ -138,16 +182,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Downstream WebSocket server running on ws://localhost:8080`);
-    console.log('\nConfiguration status:');
-    console.log(`- Synthflow API Key: ${process.env.SYNTHFLOW_API_KEY ? '✓ Configured' : '✗ Missing'}`);
-    console.log(`- Synthflow Assistant ID: ${process.env.SYNTHFLOW_ASSISTANT_ID ? '✓ Configured' : '✗ Missing'}`);
-    console.log(`- Deepgram API Key: ${process.env.DEEPGRAM_API_KEY ? '✓ Configured' : '✗ Missing'}`);
-    console.log('\nPlease ensure all API keys are configured in the .env file');
-});
+// Server is started above with WebSocket integration
 
 // Export for testing
 module.exports = { app, broadcastToDownstream };

@@ -73,3 +73,5 @@ build/
 # Local development files
 .local
 local.js
+
+.claude/

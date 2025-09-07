@@ -1,332 +1,220 @@
-# Antler GP Surgery - AI Voice Assistant Demo
+# GP Surgery AI Voice Assistant
 
-A modern GP surgery website with an integrated AI voice assistant powered by Synthflow and Deepgram. This demo replicates the Francis Grove Surgery website design and adds a sophisticated voice call widget for patient interactions.
+A production-ready GP surgery website with an integrated AI voice assistant. Features real-time voice calls with Synthflow AI, live transcription via Deepgram, and WebSocket streaming for downstream applications.
 
-## Features
+## ✨ Key Features
 
-- 🏥 **GP Surgery Website**: Clean, NHS-styled interface mimicking Francis Grove Surgery
-- 🎙️ **Voice AI Assistant**: Real-time voice interaction with Synthflow AI
-- 📝 **Live Transcription**: Real-time transcription using Deepgram with duplicate detection
-- 🔊 **Audio Streaming**: Streams audio and transcripts to downstream applications
-- 💬 **Interactive Call Widget**: Beautiful, animated call interface with clean single-circle design
-- ⏱️ **Call Timer**: Tracks call duration with proper cleanup
-- 📊 **Status Indicators**: Visual feedback for connection status
-- 🎵 **Audio Visualization**: Real-time audio waveform visualization in test client
-- 🛑 **Proper Call Cleanup**: Audio streams stop correctly when calls end
-- 🚀 **Production Ready**: Includes deployment guides and optimizations
+- 🎙️ **Real-time Voice Calls** with AI assistant
+- 📝 **Live Transcription** with duplicate detection  
+- 🔊 **Audio/Transcript Streaming** to external applications
+- 💬 **Clean Call Widget** with proper state management
+- 🚀 **Production Deployed** on Azure Container Apps
+- 📱 **Responsive Design** works on all devices
 
-## Prerequisites
+## 🚀 Quick Start
 
-- Node.js (v14 or higher)
-- npm or yarn
-- Synthflow account and API key
-- Deepgram account and API key
-- Modern web browser with microphone access
-
-## Setup Instructions
-
-### 1. Clone and Install Dependencies
-
+### 1. Local Development
 ```bash
-cd /Users/mbp/Code/elevenlabs-antler-hackathon
+# Clone and install
+git clone <your-repo>
+cd elevenlabs-antler-hackathon
 npm install
-```
 
-### 2. Configure Environment Variables
+# Create .env file
+SYNTHFLOW_API_KEY=your_api_key
+SYNTHFLOW_ASSISTANT_ID=your_assistant_id  
+DEEPGRAM_API_KEY=your_deepgram_key
 
-Create a `.env` file in the root directory:
-
-```env
-# Synthflow Configuration
-SYNTHFLOW_API_KEY=your_synthflow_api_key_here
-SYNTHFLOW_ASSISTANT_ID=your_assistant_id_here
-
-# Deepgram Configuration  
-DEEPGRAM_API_KEY=your_deepgram_api_key_here
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-```
-
-### 3. Set Up Synthflow
-
-1. Log in to your Synthflow dashboard
-2. Create a new widget-type agent
-3. Configure your agent with appropriate prompts for a GP receptionist
-4. Copy the Assistant ID and add it to your `.env` file
-
-### 4. Set Up Deepgram
-
-1. Sign up for a Deepgram account
-2. Generate an API key
-3. Add the API key to your `.env` file
-
-### 5. Start the Server
-
-```bash
+# Start locally
 npm start
 ```
 
-The application will be available at:
-- Main website: `http://localhost:3000`
-- Test React Client: `http://localhost:3000/test-react-client.html`
-- Downstream WebSocket: `ws://localhost:8080`
+**Local URLs:**
+- Main app: `http://localhost:3000`
+- Test client: `http://localhost:3000/test-react-client.html`
 
-## Usage
+### 2. Deploy to Azure
+```bash
+# Login to Azure
+az login
 
-### Using the Voice Assistant
+# Deploy (uses your .env file)
+./deploy-simple.sh
+```
 
-1. Open the main website at `http://localhost:3000`
-2. Click the blue call button in the bottom-right corner
-3. The call widget will expand with avatar and controls
-4. Click the call button to begin speaking with the AI assistant
-5. Grant microphone permissions when prompted
-6. Speak naturally - the AI will respond in real-time
-7. Click the red end call button to stop the conversation
+**Production URLs:**
+- Main app: `https://your-app.azurecontainer.io`
+- Test client: `https://your-app.azurecontainer.io/test-react-client.html`
 
-### Testing with React Client
+## 📱 How to Use
 
-1. Open the test client at `http://localhost:3000/test-react-client.html`
-2. Click "Connect" to start receiving audio and transcript streams
-3. Start a call on the main website to see real-time data flow
-4. Audio visualization will show live waveforms
-5. Transcripts appear with speaker labels and timestamps
-6. Call end signals properly stop audio streaming
+1. **Start a call**: Click the blue call button (bottom-right)
+2. **Grant permissions**: Allow microphone access  
+3. **Talk naturally**: AI responds in real-time
+4. **End call**: Click red button to stop
 
-### Downstream Integration
+## 🔌 Integrate with Your React App
 
-The system streams real-time audio and transcripts via WebSocket on port 8080. Your React app can connect to receive:
+### WebSocket Connection
+Connect to the WebSocket endpoint to receive real-time audio and transcripts:
 
 ```javascript
-// Connect to downstream WebSocket
-const ws = new WebSocket('ws://localhost:8080');
+// Production
+const wsUrl = 'wss://your-app.azurecontainer.io';
+
+// Local development  
+const wsUrl = 'ws://localhost:8080';
+
+const ws = new WebSocket(wsUrl);
+```
+
+### Message Types You'll Receive
+
+#### 1. Audio Data
+```javascript
+{
+  type: "audio",
+  data: [1234, 5678, ...], // Int16Array as regular array
+  timestamp: "2024-01-01T12:00:00.000Z"
+}
+```
+
+#### 2. Transcript Data
+```javascript  
+{
+  type: "transcript", 
+  data: {
+    speaker: "User" | "Assistant",
+    text: "Hello, how can I help you?",
+    timestamp: "2024-01-01T12:00:00.000Z",
+    isFinal: true,
+    confidence: 0.95
+  },
+  timestamp: "2024-01-01T12:00:00.000Z"
+}
+```
+
+#### 3. Call Status
+```javascript
+{
+  type: "call_ended",
+  timestamp: "2024-01-01T12:00:00.000Z"
+}
+```
+
+### Integration Example
+
+```javascript
+const ws = new WebSocket('wss://your-app.azurecontainer.io');
 
 ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    
-    if (data.type === 'audio') {
-        // Handle audio data (Int16Array)
-        console.log('Received audio chunk:', data.data);
-    } else if (data.type === 'transcript') {
-        // Handle transcript
-        console.log('Received transcript:', data.data);
-    }
+  const message = JSON.parse(event.data);
+  
+  switch (message.type) {
+    case 'audio':
+      // Convert back to Int16Array for audio processing
+      const audioData = new Int16Array(message.data);
+      handleAudioChunk(audioData);
+      break;
+      
+    case 'transcript':
+      // Display transcript in your UI
+      addTranscriptToChat(message.data);
+      break;
+      
+    case 'call_ended':
+      // Clean up your audio visualization/UI
+      handleCallEnd();
+      break;
+  }
 };
+
+function handleAudioChunk(audioData) {
+  // Process audio for visualization or storage
+  // audioData is Int16Array with 16kHz sample rate
+}
+
+function addTranscriptToChat(transcript) {
+  // Add to your chat UI
+  const isUser = transcript.speaker === 'User';
+  displayMessage(transcript.text, isUser, transcript.timestamp);
+}
 ```
 
-## Architecture
+### Audio Processing Notes
+- **Sample Rate**: 16kHz  
+- **Format**: Int16Array (signed 16-bit integers)
+- **Channels**: Mono (1 channel)
+- **Range**: -32768 to 32767
+
+## 🏗️ How It Works
 
 ```
-┌─────────────────┐     ┌──────────────┐     ┌──────────────┐
-│                 │────▶│              │────▶│              │
-│   Browser UI    │     │   Synthflow  │     │   Deepgram   │
-│   (index.html)  │◀────│   WebSocket  │     │   WebSocket  │
-│                 │     │              │     │              │
-└─────────────────┘     └──────────────┘     └──────────────┘
-         │                                            │
-         │                                            │
-         ▼                                            ▼
-┌─────────────────┐                          ┌──────────────┐
-│                 │                          │              │
-│  Express Server │                          │  Transcripts │
-│   (server.js)   │                          │              │
-│                 │                          └──────────────┘
-└─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│                 │
-│  Downstream App │
-│   (WebSocket)   │
-│                 │
-└─────────────────┘
+User ──► GP Website ──► Synthflow AI ──► Audio Response
+                │              │
+                ▼              ▼
+          Deepgram API ──► Live Transcripts
+                │
+                ▼
+         Your React App (via WebSocket)
 ```
 
-## File Structure
+## 📁 Key Files
 
-```
-elevenlabs-antler-hackathon/
-├── index.html                  # Main HTML page
-├── test-react-client.html      # Test client for downstream integration
-├── package.json               # Node dependencies
-├── server/
-│   └── server.js             # Express server with WebSocket
-├── public/
-│   └── audio-out-worklet.js  # Audio processing worklet
-├── src/
-│   ├── components/
-│   │   └── CallWidget.js     # Call widget logic
-│   ├── styles/
-│   │   └── main.css         # All styles (responsive design)
-│   └── utils/
-│       ├── audio.js         # Audio utilities
-│       ├── synthflow.js     # Synthflow integration
-│       └── deepgram.js      # Deepgram integration with deduplication
-└── README.md                # This file
-```
+- `index.html` - Main GP surgery website
+- `test-react-client.html` - Example integration 
+- `server/server.js` - Express server + WebSocket
+- `src/components/CallWidget.js` - Call interface
+- `deploy-simple.sh` - Azure deployment script
 
-## API Endpoints
+## 🔧 API Endpoints
 
-- `GET /` - Serves the main website
-- `GET /api/health` - Health check endpoint
-- `GET /api/config` - Get frontend configuration
-- `GET /api/synthflow/session/:assistantId` - Get Synthflow session token
-- `GET /api/deepgram/token` - Get Deepgram authentication token
+- `GET /api/config` - WebSocket URL for frontend
+- `GET /api/synthflow/session/:id` - Get voice session
+- `GET /api/deepgram/token` - Get transcription auth
 
-## WebSocket Connections
+## 🐛 Troubleshooting
 
-- **Synthflow**: Handles voice AI interactions
-- **Deepgram**: Provides real-time transcription
-- **Downstream** (port 8080): Streams audio and transcripts to external apps
+**No audio/transcripts in production?**
+- Check browser console for WebSocket connection errors
+- Verify environment variables are set in Azure
 
-## Troubleshooting
+**Microphone not working?**
+- Enable microphone permissions in browser  
+- Use HTTPS in production (required for mic access)
 
-### Microphone Access Issues
-- Ensure your browser has microphone permissions
-- Check that no other application is using the microphone
-- Try using HTTPS (required for production)
+## 🚢 Alternative Deployments
 
-### Connection Errors
-- Verify all API keys are correctly set in `.env`
-- Check that the Synthflow assistant ID is valid
-- Ensure Deepgram API key has proper permissions
-
-### Audio Issues
-- Check browser console for errors
-- Verify sample rates match (48kHz for input, 16kHz for output)
-- Ensure audio worklet is loading correctly
-
-## Security Notes
-
-- Never commit `.env` file to version control
-- Use HTTPS in production
-- Implement proper authentication for production use
-- Consider rate limiting for API endpoints
-- Validate and sanitize all inputs
-
-## Deployment
-
-### Production Environment Setup
-
-#### 1. Environment Variables for Production
-```env
-# Synthflow Configuration
-SYNTHFLOW_API_KEY=your_production_synthflow_api_key
-SYNTHFLOW_ASSISTANT_ID=your_production_assistant_id
-
-# Deepgram Configuration  
-DEEPGRAM_API_KEY=your_production_deepgram_api_key
-
-# Server Configuration
-PORT=3000
-NODE_ENV=production
-```
-
-#### 2. Deploy to Cloud Platform
-
-**Vercel Deployment:**
+### Vercel (Serverless)
 ```bash
-# Install Vercel CLI
 npm i -g vercel
-
-# Deploy
 vercel --prod
-
-# Set environment variables in Vercel dashboard
+# Add env vars in Vercel dashboard
 ```
 
-**Heroku Deployment:**
-```bash
-# Create Heroku app
+### Heroku
+```bash  
 heroku create your-app-name
-
-# Set environment variables
 heroku config:set SYNTHFLOW_API_KEY=your_key
-heroku config:set SYNTHFLOW_ASSISTANT_ID=your_id
-heroku config:set DEEPGRAM_API_KEY=your_key
-
-# Deploy
 git push heroku main
 ```
 
-**Docker Deployment:**
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
+### Docker
 ```bash
-# Build and run
 docker build -t gp-surgery-ai .
 docker run -p 3000:3000 --env-file .env gp-surgery-ai
 ```
 
-#### 3. Production Considerations
+## 📋 Production Checklist
 
-- **HTTPS Required**: Voice features require HTTPS in production
-- **Domain Setup**: Update CORS settings for your domain
-- **WebSocket URLs**: Update WebSocket URLs in production:
-  ```javascript
-  const downstreamUrl = `wss://your-domain.com:8080`;
-  ```
-- **Rate Limiting**: Implement rate limiting for API endpoints
-- **Monitoring**: Set up logging and error monitoring
-- **CDN**: Consider using a CDN for static assets
+- ✅ HTTPS enabled (required for microphone access)
+- ✅ Environment variables configured  
+- ✅ WebSocket connections tested
+- ✅ Audio/transcript streaming verified
+- ✅ Cross-browser compatibility checked
 
-#### 4. SSL Certificate Setup
+## 📞 Need Help?
 
-For HTTPS, you'll need to:
-1. Obtain SSL certificate (Let's Encrypt, CloudFlare, etc.)
-2. Update server configuration:
-```javascript
-const https = require('https');
-const fs = require('fs');
-
-const options = {
-  key: fs.readFileSync('path/to/private-key.pem'),
-  cert: fs.readFileSync('path/to/certificate.pem')
-};
-
-https.createServer(options, app).listen(443);
-```
-
-#### 5. Environment-Specific Configuration
-
-Update `server/server.js` for production:
-```javascript
-// Production WebSocket URL
-const wsUrl = process.env.NODE_ENV === 'production' 
-  ? `wss://${process.env.DOMAIN}:8080`
-  : 'ws://localhost:8080';
-```
-
-## Browser Compatibility
-
-- Chrome/Edge: Full support
-- Firefox: Full support
-- Safari: Requires user interaction to start audio
-- Mobile browsers: May have limited WebRTC support
-
-## Performance Optimization
-
-- Audio chunks are processed in real-time
-- Console logging is minimal in production
-- WebSocket connections are properly cleaned up on disconnect
-- Duplicate transcript detection prevents data redundancy
-
-## License
-
-MIT
-
-## Support
-
-For issues related to:
-- Synthflow: Check their documentation at docs.synthflow.ai
-- Deepgram: Visit developers.deepgram.com
-- This implementation: Create an issue in the repository
+- **Synthflow**: [docs.synthflow.ai](https://docs.synthflow.ai)  
+- **Deepgram**: [developers.deepgram.com](https://developers.deepgram.com)
+- **This project**: Create a GitHub issue

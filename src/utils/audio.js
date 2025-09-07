@@ -23,12 +23,24 @@ async function startAudioOut() {
     };
 }
 
-// Audio recording with 48kHz sample rate for Synthflow
+// Audio recording with 48kHz sample rate for Synthflow - optimized for low latency
 async function startRecording(onAudioChunk, onRecordingStarted) {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new window.AudioContext({ sampleRate: 48000 });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000,
+            channelCount: 1
+        } 
+    });
+    const audioContext = new window.AudioContext({ 
+        sampleRate: 48000,
+        latencyHint: 'interactive' // Optimize for low latency
+    });
     const sourceNode = audioContext.createMediaStreamSource(stream);
-    const scriptProcessor = audioContext.createScriptProcessor(8192, 1, 1);
+    // Use smaller buffer for lower latency (4096 instead of 8192)
+    const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
     
     let hasRecordingStarted = false;
     scriptProcessor.onaudioprocess = (audioProcessingEvent) => {

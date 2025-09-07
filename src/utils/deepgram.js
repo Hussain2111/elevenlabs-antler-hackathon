@@ -24,8 +24,8 @@ class DeepgramClient {
             
             const { token } = await tokenResponse.json();
             
-            // Create WebSocket connection to Deepgram
-            const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&interim_results=true&endpointing=300&encoding=linear16&sample_rate=16000&channels=1`;
+            // Create WebSocket connection to Deepgram with Nova-3 and optimized settings
+            const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&interim_results=true&endpointing=100&encoding=linear16&sample_rate=16000&channels=1&vad_events=true&punctuate=true&utterance_end_ms=1000`;
             
             this.websocket = new WebSocket(deepgramUrl, ['token', token]);
             
@@ -92,9 +92,9 @@ class DeepgramClient {
                             confidence: alternative.confidence || 0
                         };
                         
-                        // Only process and stream final transcripts to avoid duplicates
+                        // Only process final transcripts to avoid duplicates
                         if (transcriptEntry.isFinal) {
-                            // Check for duplicate transcripts in buffer
+                            // Check for duplicate final transcripts
                             const isDuplicate = this.transcriptBuffer.some(existing => 
                                 existing.text.trim() === transcriptEntry.text.trim() && 
                                 Math.abs(new Date(existing.timestamp) - new Date(transcriptEntry.timestamp)) < 2000

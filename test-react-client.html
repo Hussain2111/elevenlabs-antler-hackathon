@@ -137,6 +137,18 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .transcript-entry.growing {
+            animation: pulse 0.6s ease-in-out;
+            border-left: 3px solid #667eea;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
         
         .transcript-speaker {
@@ -286,7 +298,7 @@
             }
         }
         
-        function connect() {
+        async function connect() {
             const statusIndicator = document.getElementById('statusIndicator');
             const statusText = document.getElementById('statusText');
             const connectBtn = document.getElementById('connectBtn');
@@ -294,8 +306,21 @@
             statusText.textContent = 'Connecting...';
             connectBtn.disabled = true;
             
+            // Get the correct WebSocket URL from the server
+            let wsUrl = 'ws://localhost:8080'; // Default for local development
+            
+            try {
+                const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+                const response = await fetch(`${serverUrl}/api/config`);
+                const config = await response.json();
+                wsUrl = config.downstreamWebSocketUrl;
+                console.log('Using WebSocket URL:', wsUrl);
+            } catch (error) {
+                console.error('Failed to get WebSocket URL from config, using default:', error);
+            }
+            
             // Connect to the downstream WebSocket
-            ws = new WebSocket('ws://localhost:8080');
+            ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
                 isConnected = true;
@@ -374,9 +399,9 @@
                 animateAudioBars(amplitude);
             }
             
-            // Only log audio chunks periodically to avoid spam
-            if (stats.audioChunks % 100 === 0) {
-                console.log('Received audio chunk #' + stats.audioChunks + ':', data.data.length, 'samples');
+            // Only log audio chunks every 500 chunks to avoid spam
+            if (stats.audioChunks % 500 === 0) {
+                console.log('Audio chunks received:', stats.audioChunks);
             }
         }
         
@@ -422,7 +447,11 @@
             
             const time = document.createElement('div');
             time.className = 'transcript-time';
-            time.textContent = new Date(data.timestamp).toLocaleTimeString();
+            // Handle invalid timestamps gracefully
+            const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+            time.textContent = isNaN(timestamp.getTime()) ? 
+                new Date().toLocaleTimeString() : 
+                timestamp.toLocaleTimeString();
             
             entry.appendChild(speaker);
             entry.appendChild(text);
@@ -433,7 +462,10 @@
             // Auto-scroll to bottom
             container.scrollTop = container.scrollHeight;
             
-            console.log('Transcript #' + stats.transcripts + ':', data.data.text);
+            // Only log every 10th transcript to reduce noise
+            if (stats.transcripts % 10 === 1) {
+                console.log('Final transcripts received:', stats.transcripts);
+            }
         }
         
         function updateDataRate() {
@@ -490,7 +522,10 @@
             
             const endTime = document.createElement('div');
             endTime.className = 'transcript-time';
-            endTime.textContent = new Date(data.timestamp).toLocaleTimeString();
+            const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+            endTime.textContent = isNaN(timestamp.getTime()) ? 
+                new Date().toLocaleTimeString() : 
+                timestamp.toLocaleTimeString();
             
             endEntry.appendChild(endText);
             endEntry.appendChild(endTime);
