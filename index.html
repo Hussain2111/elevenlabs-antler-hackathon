@@ -258,7 +258,12 @@
         async function loadConfig() {
             try {
                 // Use the actual server URL
-                const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+                const protocol = window.location.protocol;
+                const host = window.location.host;
+                const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : `${protocol}//${host}`;
+                
+                console.log('Detected server URL:', serverUrl);
+                
                 const response = await fetch(`${serverUrl}/api/config`);
                 const config = await response.json();
                 window.SYNTHFLOW_ASSISTANT_ID = config.synthflowAssistantId;

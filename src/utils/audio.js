@@ -7,7 +7,9 @@ async function startAudioOut() {
     gainNode.connect(ctx.destination);
     
     // Use the correct path for the audio worklet
-    const workletPath = window.SERVER_URL ? `${window.SERVER_URL}/public/audio-out-worklet.js` : 'public/audio-out-worklet.js';
+    // Use current page URL if SERVER_URL is not set properly
+    const serverUrl = window.SERVER_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : `${window.location.protocol}//${window.location.host}`);
+    const workletPath = serverUrl ? `${serverUrl}/public/audio-out-worklet.js` : 'public/audio-out-worklet.js';
     await ctx.audioWorklet.addModule(workletPath);
     const worklet = new AudioWorkletNode(ctx, "audio-out-worklet");
     worklet.connect(gainNode);

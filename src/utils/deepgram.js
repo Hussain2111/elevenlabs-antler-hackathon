@@ -15,7 +15,8 @@ class DeepgramClient {
             console.log('Connecting to Deepgram...');
             
             // Get Deepgram API key from server
-            const serverUrl = window.SERVER_URL || 'http://localhost:3000';
+            // Use current page URL if SERVER_URL is not set properly
+            const serverUrl = window.SERVER_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : `${window.location.protocol}//${window.location.host}`);
             const tokenResponse = await fetch(`${serverUrl}/api/deepgram/token`);
             
             if (!tokenResponse.ok) {

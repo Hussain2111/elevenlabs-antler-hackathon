@@ -16,7 +16,8 @@ class SynthflowClient {
 
     async getSessionToken(assistantId) {
         try {
-            const serverUrl = window.SERVER_URL || 'http://localhost:3000';
+            // Use current page URL if SERVER_URL is not set properly
+            const serverUrl = window.SERVER_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : `${window.location.protocol}//${window.location.host}`);
             const url = `${serverUrl}/api/synthflow/session/${assistantId}`;
             
             console.log(`Requesting session token from: ${url}`);
