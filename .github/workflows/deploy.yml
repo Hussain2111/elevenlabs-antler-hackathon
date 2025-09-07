@@ -21,6 +21,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Verify secrets configuration
+      run: |
+        echo "Checking secret configuration (values hidden for security):"
+        echo "REGISTRY_PASSWORD configured: ${{ secrets.REGISTRY_PASSWORD != '' }}"
+        echo "AZURE_CREDENTIALS configured: ${{ secrets.AZURE_CREDENTIALS != '' }}"
+        echo "SYNTHFLOW_API_KEY configured: ${{ secrets.SYNTHFLOW_API_KEY != '' }}"
+        echo "SYNTHFLOW_ASSISTANT_ID configured: ${{ secrets.SYNTHFLOW_ASSISTANT_ID != '' }}"
+        echo "DEEPGRAM_API_KEY configured: ${{ secrets.DEEPGRAM_API_KEY != '' }}"
+    
     - name: Log in to Azure Container Registry
       uses: azure/docker-login@v1
       with:
@@ -40,6 +49,27 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
+    - name: Update Container App Secrets and Environment Variables
+      run: |
+        # Update secrets
+        az containerapp secret set \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --secrets \
+            synthflow-api-key="${{ secrets.SYNTHFLOW_API_KEY }}" \
+            synthflow-assistant-id="${{ secrets.SYNTHFLOW_ASSISTANT_ID }}" \
+            deepgram-api-key="${{ secrets.DEEPGRAM_API_KEY }}"
+        
+        # Update environment variables to reference secrets
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --set-env-vars \
+            SYNTHFLOW_API_KEY=secretref:synthflow-api-key \
+            SYNTHFLOW_ASSISTANT_ID=secretref:synthflow-assistant-id \
+            DEEPGRAM_API_KEY=secretref:deepgram-api-key \
+            NODE_ENV=production
+    
     - name: Deploy to Azure Container Apps
       uses: azure/container-apps-deploy-action@v1
       with:
@@ -49,8 +79,3 @@ jobs:
         containerAppName: ${{ env.CONTAINER_APP_NAME }}
         resourceGroup: ${{ env.RESOURCE_GROUP }}
         imageToDeploy: ${{ env.REGISTRY_LOGIN_SERVER }}/gp-surgery-app:${{ github.sha }}
-        environmentVariables: |
-          SYNTHFLOW_API_KEY=${{ secrets.SYNTHFLOW_API_KEY }}
-          SYNTHFLOW_ASSISTANT_ID=${{ secrets.SYNTHFLOW_ASSISTANT_ID }}
-          DEEPGRAM_API_KEY=${{ secrets.DEEPGRAM_API_KEY }}
-          NODE_ENV=production
