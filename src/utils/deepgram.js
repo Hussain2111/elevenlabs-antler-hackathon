@@ -2,20 +2,20 @@
 
 class DeepgramClient {
     constructor(onTranscript) {
-        this.websocket = null;
+        this.userWebsocket = null;
+        this.assistantWebsocket = null;
         this.onTranscript = onTranscript;
         this.isConnected = false;
         this.transcriptBuffer = [];
-        this.currentSpeaker = 'Speaker';
         this.hasLoggedConnectionIssue = false;
+        this.deepgramToken = null;
     }
 
     async connect() {
         try {
-            console.log('Connecting to Deepgram...');
+            console.log('Connecting to Deepgram with dual connections...');
             
             // Get Deepgram API key from server
-            // Use current page URL if SERVER_URL is not set properly
             const serverUrl = window.SERVER_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : `${window.location.protocol}//${window.location.host}`);
             const tokenResponse = await fetch(`${serverUrl}/api/deepgram/token`);
             
@@ -24,117 +24,138 @@ class DeepgramClient {
             }
             
             const { token } = await tokenResponse.json();
+            this.deepgramToken = token;
             
-            // Create WebSocket connection to Deepgram with Nova-3 and optimized settings
-            const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&interim_results=true&endpointing=100&encoding=linear16&sample_rate=16000&channels=1&vad_events=true&punctuate=true&utterance_end_ms=1000`;
+            // Create separate WebSocket connections for user and assistant
+            const baseUrl = `wss://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&interim_results=true&endpointing=100&encoding=linear16&sample_rate=16000&channels=1&vad_events=true&punctuate=true&utterance_end_ms=1000`;
             
-            this.websocket = new WebSocket(deepgramUrl, ['token', token]);
+            // User connection
+            this.userWebsocket = new WebSocket(baseUrl, ['token', token]);
+            this.userWebsocket.binaryType = 'arraybuffer';
+            
+            // Assistant connection  
+            this.assistantWebsocket = new WebSocket(baseUrl, ['token', token]);
+            this.assistantWebsocket.binaryType = 'arraybuffer';
             
             this.setupWebSocketHandlers();
             
-            // Wait for connection
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000);
-                
-                this.websocket.onopen = () => {
-                    clearTimeout(timeout);
-                    this.isConnected = true;
-                    console.log('Connected to Deepgram');
-                    
-                    console.log('Deepgram transcription service connected and ready');
-                    
-                    resolve();
-                };
-                
-                this.websocket.onerror = (error) => {
-                    clearTimeout(timeout);
-                    console.error('Deepgram WebSocket error:', error);
-                    reject(error);
-                };
-            });
+            // Wait for both connections
+            await Promise.all([
+                this.waitForConnection(this.userWebsocket, 'User'),
+                this.waitForConnection(this.assistantWebsocket, 'Assistant')
+            ]);
+            
+            this.isConnected = true;
+            console.log('Both Deepgram connections established successfully');
             
         } catch (error) {
             console.error('Failed to connect to Deepgram:', error);
             // Fall back to demo mode if connection fails
             this.isConnected = true;
             console.log('Falling back to demo mode with simulated transcripts');
-            
-            console.log('Deepgram connection failed, no transcription available');
         }
     }
 
-    setupWebSocketHandlers() {
-        if (!this.websocket) return;
-        
-        this.websocket.onopen = () => {
-            console.log('Connected to Deepgram');
-            this.isConnected = true;
-        };
+    async waitForConnection(websocket, label) {
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error(`${label} connection timeout`)), 10000);
+            
+            websocket.onopen = () => {
+                clearTimeout(timeout);
+                console.log(`${label} Deepgram connection established`);
+                resolve();
+            };
+            
+            websocket.onerror = (error) => {
+                clearTimeout(timeout);
+                console.error(`${label} Deepgram WebSocket error:`, error);
+                reject(error);
+            };
+        });
+    }
 
-        this.websocket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
+    setupWebSocketHandlers() {
+        // Setup User WebSocket handlers
+        if (this.userWebsocket) {
+            this.userWebsocket.onmessage = (event) => {
+                this.handleTranscriptMessage(event, 'User');
+            };
+
+            this.userWebsocket.onerror = (error) => {
+                console.error('User Deepgram WebSocket error:', error);
+            };
+
+            this.userWebsocket.onclose = () => {
+                console.log('User Deepgram connection closed');
+            };
+        }
+
+        // Setup Assistant WebSocket handlers
+        if (this.assistantWebsocket) {
+            this.assistantWebsocket.onmessage = (event) => {
+                this.handleTranscriptMessage(event, 'Assistant');
+            };
+
+            this.assistantWebsocket.onerror = (error) => {
+                console.error('Assistant Deepgram WebSocket error:', error);
+            };
+
+            this.assistantWebsocket.onclose = () => {
+                console.log('Assistant Deepgram connection closed');
+            };
+        }
+    }
+
+    handleTranscriptMessage(event, speakerLabel) {
+        try {
+            const data = JSON.parse(event.data);
+            
+            // Handle Deepgram response format
+            if (data.channel && data.channel.alternatives && data.channel.alternatives.length > 0) {
+                const alternative = data.channel.alternatives[0];
+                const transcript = alternative.transcript;
                 
-                // Handle Deepgram response format
-                if (data.channel && data.channel.alternatives && data.channel.alternatives.length > 0) {
-                    const alternative = data.channel.alternatives[0];
-                    const transcript = alternative.transcript;
+                // Only process non-empty transcripts
+                if (transcript && transcript.trim() !== '') {
+                    const transcriptEntry = {
+                        speaker: speakerLabel,
+                        text: transcript,
+                        timestamp: new Date().toISOString(),
+                        isFinal: data.is_final || false,
+                        confidence: alternative.confidence || 0
+                    };
                     
-                    // Only process non-empty transcripts
-                    if (transcript && transcript.trim() !== '') {
-                        // Determine speaker based on context or use generic labels
-                        const speakerLabel = this.currentSpeaker || 'Speaker';
+                    // Only process final transcripts to avoid duplicates
+                    if (transcriptEntry.isFinal) {
+                        // Check for duplicate final transcripts
+                        const isDuplicate = this.transcriptBuffer.some(existing => 
+                            existing.text.trim() === transcriptEntry.text.trim() && 
+                            existing.speaker === transcriptEntry.speaker &&
+                            Math.abs(new Date(existing.timestamp) - new Date(transcriptEntry.timestamp)) < 2000
+                        );
                         
-                        const transcriptEntry = {
-                            speaker: speakerLabel,
-                            text: transcript,
-                            timestamp: new Date().toISOString(),
-                            isFinal: data.is_final || false,
-                            confidence: alternative.confidence || 0
-                        };
-                        
-                        // Only process final transcripts to avoid duplicates
-                        if (transcriptEntry.isFinal) {
-                            // Check for duplicate final transcripts
-                            const isDuplicate = this.transcriptBuffer.some(existing => 
-                                existing.text.trim() === transcriptEntry.text.trim() && 
-                                Math.abs(new Date(existing.timestamp) - new Date(transcriptEntry.timestamp)) < 2000
-                            );
-                            
-                            if (!isDuplicate) {
-                                this.transcriptBuffer.push(transcriptEntry);
-                                this.onTranscript(transcriptEntry);
-                            }
-                        }
-                        
-                        // Log only final transcripts to reduce noise
-                        if (transcriptEntry.isFinal) {
-                            console.log(`Deepgram transcript (final):`, transcript);
+                        if (!isDuplicate) {
+                            this.transcriptBuffer.push(transcriptEntry);
+                            this.onTranscript(transcriptEntry);
                         }
                     }
+                    
+                    // Log only final transcripts to reduce noise
+                    if (transcriptEntry.isFinal) {
+                        console.log(`Deepgram transcript (final) [${speakerLabel}]:`, transcript);
+                    }
                 }
-            } catch (error) {
-                console.error('Error processing Deepgram message:', error);
             }
-        };
-
-        this.websocket.onerror = (error) => {
-            console.error('Deepgram WebSocket error:', error);
-            this.isConnected = false;
-        };
-
-        this.websocket.onclose = () => {
-            console.log('Disconnected from Deepgram');
-            this.isConnected = false;
-        };
+        } catch (error) {
+            console.error(`Error processing ${speakerLabel} Deepgram message:`, error);
+        }
     }
 
     processAudio(audioData, speaker) {
-        // Send real audio data to Deepgram if connected
-        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-            // Track current speaker for transcript labeling
-            this.currentSpeaker = speaker === 'user' ? 'User' : 'Assistant';
-            
+        // Send audio data to the appropriate Deepgram connection
+        const targetWebsocket = speaker === 'user' ? this.userWebsocket : this.assistantWebsocket;
+        
+        if (targetWebsocket && targetWebsocket.readyState === WebSocket.OPEN) {
             // Convert audio data to the format expected by Deepgram
             let audioBuffer;
             
@@ -142,22 +163,49 @@ class DeepgramClient {
                 audioBuffer = audioData;
             } else if (audioData instanceof Int16Array) {
                 audioBuffer = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
+            } else if (audioData instanceof Uint8Array) {
+                // User audio comes as Uint8Array at 48kHz, need to convert to 16kHz
+                if (speaker === 'user') {
+                    audioBuffer = this.resampleUserAudio(audioData);
+                } else {
+                    audioBuffer = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
+                }
             } else {
                 console.warn('Unsupported audio data format for Deepgram');
                 return;
             }
             
-            // Send audio to Deepgram
-            this.websocket.send(audioBuffer);
+            // Send audio to the appropriate Deepgram connection
+            targetWebsocket.send(audioBuffer);
             
-            // Audio sent to Deepgram for real-time transcription
+            // Debug logging (remove in production)
+            if (speaker === 'user' && Math.random() < 0.01) { // Log 1% of user audio chunks
+                console.log(`Sent ${speaker} audio chunk: ${audioBuffer.byteLength} bytes`);
+            }
+            
         } else {
             // Only log connection issues, not every audio chunk
             if (!this.hasLoggedConnectionIssue) {
-                console.log(`Audio data received but Deepgram not connected`);
+                console.log(`${speaker} audio received but Deepgram not connected`);
                 this.hasLoggedConnectionIssue = true;
             }
         }
+    }
+
+    resampleUserAudio(uint8Array) {
+        // Convert Uint8Array to Int16Array (48kHz)
+        const int16Array = new Int16Array(uint8Array.buffer, uint8Array.byteOffset, uint8Array.byteLength / 2);
+        
+        // Simple downsampling from 48kHz to 16kHz (3:1 ratio)
+        // Take every 3rd sample
+        const downsampledLength = Math.floor(int16Array.length / 3);
+        const downsampledArray = new Int16Array(downsampledLength);
+        
+        for (let i = 0; i < downsampledLength; i++) {
+            downsampledArray[i] = int16Array[i * 3];
+        }
+        
+        return downsampledArray.buffer;
     }
 
     streamTranscriptToApp(transcript) {
@@ -176,10 +224,18 @@ class DeepgramClient {
     }
 
     disconnect() {
-        if (this.websocket) {
-            this.websocket.close();
+        if (this.userWebsocket) {
+            this.userWebsocket.close();
+            this.userWebsocket = null;
         }
+        
+        if (this.assistantWebsocket) {
+            this.assistantWebsocket.close();
+            this.assistantWebsocket = null;
+        }
+        
         this.isConnected = false;
+        this.deepgramToken = null;
     }
 }
 
