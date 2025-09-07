@@ -24,25 +24,47 @@ app.get('/api/synthflow/session/:assistantId', async (req, res) => {
         const { assistantId } = req.params;
         const synthflowApiKey = process.env.SYNTHFLOW_API_KEY;
         
+        console.log(`Synthflow session request for assistant: ${assistantId}`);
+        console.log(`API key configured: ${synthflowApiKey ? 'Yes' : 'No'}`);
+        
         if (!synthflowApiKey) {
+            console.error('Synthflow API key is not configured');
             return res.status(500).json({ error: 'Synthflow API key not configured' });
         }
         
+        if (!assistantId) {
+            console.error('Assistant ID is missing');
+            return res.status(400).json({ error: 'Assistant ID is required' });
+        }
+        
+        const url = `https://widget.synthflow.ai/websocket/token/${assistantId}`;
+        console.log(`Making request to: ${url}`);
+        
         // Request session token from Synthflow
-        const response = await axios.get(
-            `https://widget.synthflow.ai/websocket/token/${assistantId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${synthflowApiKey}`
-                }
+        const response = await axios.get(url, {
+            headers: {
+                'Authorization': `Bearer ${synthflowApiKey}`
             }
-        );
+        });
+        
+        console.log(`Synthflow response status: ${response.status}`);
+        console.log('Session token received successfully');
         
         res.json(response.data);
         
     } catch (error) {
-        console.error('Error getting Synthflow session:', error);
-        res.status(500).json({ error: 'Failed to get session token' });
+        console.error('Error getting Synthflow session:', error.response?.data || error.message);
+        console.error('Error status:', error.response?.status);
+        console.error('Error headers:', error.response?.headers);
+        
+        // Return more specific error information
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to get session token';
+        const statusCode = error.response?.status || 500;
+        
+        res.status(statusCode).json({ 
+            error: errorMessage,
+            details: error.response?.data || 'Network or authentication error'
+        });
     }
 });
 
@@ -150,6 +172,23 @@ app.get('/api/health', (req, res) => {
         services: {
             synthflow: !!process.env.SYNTHFLOW_API_KEY,
             deepgram: !!process.env.DEEPGRAM_API_KEY
+        }
+    });
+});
+
+// Debug endpoint to check configuration
+app.get('/api/debug/config', (req, res) => {
+    res.json({
+        environment: process.env.NODE_ENV || 'development',
+        synthflow: {
+            apiKeyConfigured: !!process.env.SYNTHFLOW_API_KEY,
+            apiKeyLength: process.env.SYNTHFLOW_API_KEY ? process.env.SYNTHFLOW_API_KEY.length : 0,
+            assistantIdConfigured: !!process.env.SYNTHFLOW_ASSISTANT_ID,
+            assistantId: process.env.SYNTHFLOW_ASSISTANT_ID || 'not configured'
+        },
+        deepgram: {
+            apiKeyConfigured: !!process.env.DEEPGRAM_API_KEY,
+            apiKeyLength: process.env.DEEPGRAM_API_KEY ? process.env.DEEPGRAM_API_KEY.length : 0
         }
     });
 });

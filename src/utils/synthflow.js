@@ -17,11 +17,30 @@ class SynthflowClient {
     async getSessionToken(assistantId) {
         try {
             const serverUrl = window.SERVER_URL || 'http://localhost:3000';
-            const response = await fetch(`${serverUrl}/api/synthflow/session/${assistantId}`);
+            const url = `${serverUrl}/api/synthflow/session/${assistantId}`;
+            
+            console.log(`Requesting session token from: ${url}`);
+            console.log(`Assistant ID: ${assistantId}`);
+            
+            const response = await fetch(url);
+            
+            console.log(`Response status: ${response.status}`);
+            
             if (!response.ok) {
-                throw new Error('Failed to get session token');
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+                console.error('Session token request failed:', errorMessage);
+                console.error('Error details:', errorData.details);
+                throw new Error(`Failed to get session token: ${errorMessage}`);
             }
+            
             const data = await response.json();
+            console.log('Session token received successfully');
+            
+            if (!data.sessionURL) {
+                throw new Error('Session URL not found in response');
+            }
+            
             return data.sessionURL;
         } catch (error) {
             console.error('Error getting session token:', error);
