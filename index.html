@@ -229,7 +229,7 @@
                 </div>
             </div>
             <div class="controls">
-                <button id="call-button" class="call-button" onclick="toggleCall()">
+                <button id="call-button" class="call-button">
                     <svg class="phone-icon" id="phone-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
                     </svg>
@@ -245,6 +245,33 @@
     <button id="widget-toggle" class="widget-toggle" onclick="toggleWidget()">
         <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+    </button>
+
+    <!-- Anam AI Widget -->
+    <div id="anam-widget" class="anam-widget">
+        <div class="widget-body">
+            <div class="widget-content expanded-content" style="display: none;">
+                <div class="anam-header">
+                    <h3>Mental Health Support</h3>
+                    <button class="close-btn" onclick="toggleAnamWidget()">×</button>
+                </div>
+                <iframe
+                    src="https://lab.anam.ai/frame/HEGviGRgQ1W9dp5eJh2ad"
+                    width="720"
+                    height="480"
+                    allow="microphone"
+                    class="anam-iframe"
+                ></iframe>
+            </div>
+        </div>
+        <div class="tooltip">Mental Health Support</div>
+    </div>
+
+    <!-- Anam Widget Toggle Button -->
+    <button id="anam-toggle" class="anam-toggle">
+        <svg class="user-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
     </button>
 
@@ -292,6 +319,195 @@
 
         // Load config on page load
         loadConfig();
+
+        // Anam Widget Functions
+        let anamWidgetOpen = false;
+
+        function toggleAnamWidget() {
+            const widget = document.getElementById('anam-widget');
+            const toggleBtn = document.getElementById('anam-toggle');
+            const expandedContent = widget.querySelector('.expanded-content');
+            
+            if (anamWidgetOpen) {
+                // Close widget
+                widget.classList.remove('expanded');
+                expandedContent.style.display = 'none';
+                toggleBtn.style.display = 'flex';
+                anamWidgetOpen = false;
+            } else {
+                // Open widget
+                widget.classList.add('expanded');
+                expandedContent.style.display = 'flex';
+                toggleBtn.style.display = 'none';
+                anamWidgetOpen = true;
+            }
+        }
+
+        // Export to window for HTML onclick handlers
+        window.toggleAnamWidget = toggleAnamWidget;
+
+        // Drag functionality
+        let dragData = {
+            isDragging: false,
+            hasDragged: false,
+            currentElement: null,
+            startX: 0,
+            startY: 0,
+            elementStartX: 0,
+            elementStartY: 0,
+            dragThreshold: 5 // pixels - minimum movement to start drag
+        };
+
+        function initializeDragListeners() {
+            const anamToggle = document.getElementById('anam-toggle');
+            const anamWidget = document.getElementById('anam-widget');
+            const callWidget = document.getElementById('call-widget');
+            const callButton = document.getElementById('call-button');
+
+            // Add drag listeners to all draggable elements
+            [anamToggle, anamWidget, callWidget, callButton].forEach(element => {
+                if (element) {
+                    element.addEventListener('mousedown', handleDragStart);
+                    element.addEventListener('touchstart', handleDragStart, { passive: false });
+                }
+            });
+
+            // Global listeners for drag move and end
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('touchend', handleDragEnd);
+        }
+
+        function handleDragStart(e) {
+            // Don't start drag if clicking on buttons inside widgets
+            if (e.target.tagName === 'BUTTON' && e.target !== e.currentTarget) return;
+            if (e.target.closest('iframe')) return;
+            if (e.target.closest('.close-btn')) return;
+
+            // Initialize drag data but don't start dragging yet
+            dragData.currentElement = e.currentTarget;
+            dragData.hasDragged = false;
+
+            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+            dragData.startX = clientX;
+            dragData.startY = clientY;
+
+            const rect = dragData.currentElement.getBoundingClientRect();
+            dragData.elementStartX = rect.left;
+            dragData.elementStartY = rect.top;
+
+            // Only prevent default for touch events to avoid issues
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
+        }
+
+        function handleDragMove(e) {
+            if (!dragData.currentElement) return;
+
+            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+            const deltaX = clientX - dragData.startX;
+            const deltaY = clientY - dragData.startY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Only start dragging if we've moved beyond the threshold
+            if (!dragData.isDragging && distance > dragData.dragThreshold) {
+                dragData.isDragging = true;
+                dragData.hasDragged = true;
+                dragData.currentElement.classList.add('dragging');
+                document.body.style.userSelect = 'none';
+            }
+
+            if (!dragData.isDragging) return;
+
+            e.preventDefault();
+
+            const newX = dragData.elementStartX + deltaX;
+            const newY = dragData.elementStartY + deltaY;
+
+            // Constrain to viewport
+            const element = dragData.currentElement;
+            const rect = element.getBoundingClientRect();
+            const maxX = window.innerWidth - rect.width;
+            const maxY = window.innerHeight - rect.height;
+
+            const constrainedX = Math.max(0, Math.min(maxX, newX));
+            const constrainedY = Math.max(0, Math.min(maxY, newY));
+
+            // Update position using left/top instead of bottom/right
+            element.style.left = constrainedX + 'px';
+            element.style.top = constrainedY + 'px';
+            element.style.right = 'auto';
+            element.style.bottom = 'auto';
+        }
+
+        function handleDragEnd(e) {
+            if (!dragData.currentElement) return;
+
+            // Only save position and clean up if we actually dragged
+            if (dragData.isDragging) {
+                dragData.currentElement.classList.remove('dragging');
+                
+                // Save position to localStorage
+                const element = dragData.currentElement;
+                const rect = element.getBoundingClientRect();
+                const position = {
+                    left: rect.left,
+                    top: rect.top
+                };
+                
+                localStorage.setItem(element.id + '_position', JSON.stringify(position));
+                document.body.style.userSelect = '';
+            }
+
+            // If we didn't drag (just clicked), allow the click event to proceed
+            if (!dragData.hasDragged) {
+                // For anam toggle, trigger the widget toggle
+                if (dragData.currentElement.id === 'anam-toggle') {
+                    setTimeout(() => toggleAnamWidget(), 0);
+                }
+                // For call widget or call button, trigger the call toggle
+                else if (dragData.currentElement.id === 'call-widget' || dragData.currentElement.id === 'call-button') {
+                    setTimeout(() => toggleCall(), 0);
+                }
+            }
+
+            // Reset drag data
+            dragData.isDragging = false;
+            dragData.hasDragged = false;
+            dragData.currentElement = null;
+        }
+
+        function loadSavedPositions() {
+            const anamToggle = document.getElementById('anam-toggle');
+            const anamWidget = document.getElementById('anam-widget');
+            const callWidget = document.getElementById('call-widget');
+            const callButton = document.getElementById('call-button');
+
+            [anamToggle, anamWidget, callWidget, callButton].forEach(element => {
+                if (element) {
+                    const savedPosition = localStorage.getItem(element.id + '_position');
+                    if (savedPosition) {
+                        const position = JSON.parse(savedPosition);
+                        element.style.left = position.left + 'px';
+                        element.style.top = position.top + 'px';
+                        element.style.right = 'auto';
+                        element.style.bottom = 'auto';
+                    }
+                }
+            });
+        }
+
+        // Initialize drag functionality when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDragListeners();
+            loadSavedPositions();
+        });
     </script>
 </body>
 </html>
