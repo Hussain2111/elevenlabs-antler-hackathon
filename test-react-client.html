@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Patient Call Client - Real-time Audio & Transcript</title>
+    <link rel="icon" type="image/png" href="/public/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/public/favicon.png">
     <style>
         * {
             margin: 0;
@@ -19,6 +21,102 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+        }
+        
+        /* User Dropdown */
+        .user-dropdown {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-avatar:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .user-avatar-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        
+        .user-dropdown-menu {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+        }
+        
+        .user-dropdown.open .user-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .user-dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.25rem;
+        }
+        
+        .user-email {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        
+        .user-dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #1a1a1a;
+            text-decoration: none;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .user-dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .user-dropdown-item.danger {
+            color: #ef4444;
+        }
+        
+        .user-dropdown-item.danger:hover {
+            background: rgba(239, 68, 68, 0.05);
         }
         
         .container {
@@ -224,6 +322,30 @@
     </style>
 </head>
 <body>
+    <!-- User Dropdown -->
+    <div class="user-dropdown" id="userDropdown" style="display: none;">
+        <div class="user-avatar" onclick="toggleUserDropdown()">
+            <svg class="user-avatar-icon" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </div>
+        <div class="user-dropdown-menu" id="userDropdownMenu">
+            <div class="user-dropdown-header">
+                <div class="user-name" id="dropdownUserName">Loading...</div>
+                <div class="user-email" id="dropdownUserEmail">Loading...</div>
+            </div>
+            <a href="/" class="user-dropdown-item">
+                🏠 Main Website
+            </a>
+            <a href="/clinician-dashboard.html" class="user-dropdown-item">
+                🏥 Clinician Dashboard
+            </a>
+            <button class="user-dropdown-item danger" onclick="confirmLogout()">
+                🚪 Sign Out
+            </button>
+        </div>
+    </div>
+
     <div class="container">
         <h1>🎧 Live Patient Call Client</h1>
         <p class="subtitle">Receiving real-time audio and transcripts from the GP Surgery AI Assistant</p>
@@ -535,8 +657,53 @@
             container.scrollTop = container.scrollHeight;
         }
         
+        // User dropdown functionality
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('open');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/user');
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.user) {
+                        const name = userData.user.name || userData.user.email;
+                        const email = userData.user.email;
+                        
+                        // Update dropdown content
+                        document.getElementById('dropdownUserName').textContent = `${name}`;
+                        document.getElementById('dropdownUserEmail').textContent = email;
+                        document.getElementById('userDropdown').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                // User not authenticated
+            }
+        }
+
+        // Logout confirmation
+        function confirmLogout() {
+            if (confirm('Are you sure you want to sign out? You\'ll need to log in again to access the system.')) {
+                window.location.href = '/logout';
+            }
+        }
+
         // Auto-connect on load for demo
         window.addEventListener('load', () => {
+            // Load user info
+            loadUserInfo();
+            
             setTimeout(() => {
                 console.log('Auto-connecting to demonstrate functionality...');
                 // Uncomment to auto-connect:

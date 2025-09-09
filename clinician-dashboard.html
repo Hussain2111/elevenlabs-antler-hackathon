@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NHS Triage Dashboard - Live Call Monitoring</title>
+    <link rel="icon" type="image/png" href="/public/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/public/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --nhs-blue: #005eb8;
+            --nhs-light-blue: #41b6e6;
+            --nhs-dark-blue: #003087;
+            --success-green: #00a499;
+            --warning-amber: #ffb81c;
+            --error-red: #da291c;
+            --text-primary: #212b32;
+            --text-secondary: #425563;
+            --background: #f0f4f7;
+            --card-background: #ffffff;
+            --border-light: #d8dde0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .dashboard-header {
+            background: var(--nhs-blue);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .nhs-logo {
+            background: white;
+            color: var(--nhs-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .dashboard-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error-red);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.connected {
+            background: var(--success-green);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Tabs */
+        .tabs-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-button.active {
+            color: var(--nhs-blue);
+            background: rgba(0, 94, 184, 0.05);
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--nhs-blue);
+        }
+        
+        .tab-button:hover:not(.active) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            padding: 2rem;
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Live Call Section */
+        .call-status-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--success-green);
+        }
+        
+        .call-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .call-details h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .call-details p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .call-timer {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--success-green);
+        }
+        
+        .connect-section {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, var(--nhs-blue) 0%, var(--nhs-light-blue) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .connect-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Audio Section */
+        .audio-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .section-icon {
+            font-size: 1.2rem;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .waveform-container {
+            height: 120px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid var(--border-light);
+        }
+        
+        .waveform {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 80px;
+        }
+        
+        .wave-bar {
+            width: 3px;
+            background: linear-gradient(to top, var(--nhs-blue), var(--nhs-light-blue));
+            border-radius: 2px;
+            transition: height 0.2s ease;
+            animation: wave 1.5s ease-in-out infinite;
+        }
+        
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 100% { height: 20px; }
+            50% { height: 60px; }
+        }
+        
+        .no-audio {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        /* Transcript Section */
+        .transcript-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        
+        .transcript-container {
+            height: 120px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 1rem;
+        }
+        
+        .transcript-entry {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-left: 3px solid var(--border-light);
+        }
+        
+        .transcript-entry.user {
+            border-left-color: var(--nhs-blue);
+        }
+        
+        .transcript-entry.assistant {
+            border-left-color: var(--success-green);
+        }
+        
+        .transcript-speaker {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .transcript-speaker.user {
+            color: var(--nhs-blue);
+        }
+        
+        .transcript-speaker.assistant {
+            color: var(--success-green);
+        }
+        
+        .speaker-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: rgba(0, 94, 184, 0.1);
+            color: var(--nhs-blue);
+        }
+        
+        .speaker-badge.assistant {
+            background: rgba(0, 164, 153, 0.1);
+            color: var(--success-green);
+        }
+        
+        .transcript-text {
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+        
+        .transcript-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Voice Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .analytics-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .analytics-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .analytics-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .analytics-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .analytics-icon.mood { background: rgba(255, 184, 28, 0.1); color: var(--warning-amber); }
+        .analytics-icon.sentiment { background: rgba(0, 164, 153, 0.1); color: var(--success-green); }
+        .analytics-icon.breathing { background: rgba(65, 182, 230, 0.1); color: var(--nhs-light-blue); }
+        .analytics-icon.stress { background: rgba(218, 41, 28, 0.1); color: var(--error-red); }
+        .analytics-icon.clarity { background: rgba(0, 94, 184, 0.1); color: var(--nhs-blue); }
+        .analytics-icon.energy { background: rgba(0, 164, 153, 0.1); color: var(--success-green); }
+        .analytics-icon.pace { background: rgba(139, 69, 19, 0.1); color: #8b4513; }
+        .analytics-icon.volume { background: rgba(75, 0, 130, 0.1); color: #4b0082; }
+        
+        .analytics-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .analytics-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .analytics-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .analytics-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .trend-up { color: var(--success-green); }
+        .trend-down { color: var(--error-red); }
+        .trend-stable { color: var(--text-secondary); }
+        
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.good { background: var(--success-green); }
+        .progress-fill.warning { background: var(--warning-amber); }
+        .progress-fill.danger { background: var(--error-red); }
+        
+        /* Past Calls */
+        .past-calls-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        .past-calls-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .past-calls-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .refresh-btn {
+            background: var(--nhs-blue);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: var(--nhs-dark-blue);
+        }
+        
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .calls-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .call-item {
+            border-bottom: 1px solid var(--border-light);
+            transition: background 0.2s;
+        }
+        
+        .call-item:last-child {
+            border-bottom: none;
+        }
+        
+        .call-item:hover {
+            background: rgba(0, 94, 184, 0.02);
+        }
+        
+        .call-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .call-basic-info {
+            flex: 1;
+        }
+        
+        .call-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .call-meta {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .call-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-green);
+        }
+        
+        .status-dot.failed {
+            background: var(--error-red);
+        }
+        
+        .expand-icon {
+            transition: transform 0.2s;
+            color: var(--text-secondary);
+        }
+        
+        .call-item.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .call-details {
+            padding: 0 1.5rem 1.5rem;
+            display: none;
+            border-top: 1px solid var(--border-light);
+            background: rgba(0, 94, 184, 0.01);
+        }
+        
+        .call-item.expanded .call-details {
+            display: block;
+        }
+        
+        .call-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .call-details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .detail-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .detail-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .detail-content {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        .transcript-preview {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+        }
+        
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .error-message {
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--error-red);
+            background: rgba(218, 41, 28, 0.05);
+        }
+        
+        .no-calls {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <span class="nhs-logo">NHS</span>
+                <div>
+                    <h1 class="dashboard-title">Triage Dashboard</h1>
+                    <p class="dashboard-subtitle">Live call monitoring and patient triage</p>
+                </div>
+            </div>
+            <div class="status-badge">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-button active" onclick="switchTab('live')">
+                    🔴 Live Calls
+                </button>
+                <button class="tab-button" onclick="switchTab('past')">
+                    📋 Past Calls
+                </button>
+            </div>
+            
+            <!-- Live Calls Tab -->
+            <div class="tab-content active" id="liveTab">
+                <!-- Live Call Interface -->
+                <div id="liveInterface">
+                    <!-- Current Call Status -->
+                    <div class="call-status-card" id="callStatusCard" style="display: none;">
+                        <div class="call-info" style="display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: start;">
+                            <div class="patient-details">
+                                <h3 style="margin: 0 0 1rem 0; color: var(--nhs-blue); font-size: 1.3rem;">📞 Active Patient Call</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Patient Name</div>
+                                        <div style="font-weight: 600; color: var(--text-primary);" id="patientName">Sarah Thompson</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Patient ID</div>
+                                        <div style="font-weight: 600; color: var(--text-primary); font-family: monospace;" id="patientId">NHS-7834521</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Phone Number</div>
+                                        <div style="font-weight: 600; color: var(--text-primary); font-family: monospace;" id="patientPhone">+44 7911 123456</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Call Initiated</div>
+                                        <div style="font-weight: 600; color: var(--text-primary);" id="callInitiated">--:--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="call-timer-section" style="text-align: center; padding: 1rem; background: rgba(0, 94, 184, 0.05); border-radius: 8px; min-width: 120px;">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Duration</div>
+                                <div class="call-timer" id="callTimer" style="font-size: 2rem; font-weight: 700; color: var(--success-green); margin: 0;">00:00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio and Transcript Grid -->
+                    <div class="dashboard-grid">
+                        <!-- Audio Visualization -->
+                        <div class="audio-section">
+                            <div class="section-header">
+                                <span class="section-icon">🔊</span>
+                                <h3 class="section-title">Live Audio Stream</h3>
+                            </div>
+                            <div class="waveform-container" id="waveformContainer">
+                                <div class="waveform" id="waveform" style="display: none;">
+                                    <!-- Waveform bars will be generated here -->
+                                </div>
+                                <div class="no-audio" id="noAudio">No audio data yet</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Transcripts -->
+                        <div class="transcript-section">
+                            <div class="section-header">
+                                <span class="section-icon">📝</span>
+                                <h3 class="section-title">Live Transcripts</h3>
+                            </div>
+                            <div class="transcript-container" id="transcriptContainer">
+                                <div class="no-audio" id="noTranscripts">No transcripts yet</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voice Analytics -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin: 2rem 0 1rem 0;">
+                        <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-primary);">🩺 Patient Voice Analytics</h3>
+                        <div id="analyticsStatus" style="font-size: 0.9rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning-amber);" id="analyticsIndicator"></div>
+                            <span id="analyticsStatusText">Waiting for patient voice...</span>
+                        </div>
+                    </div>
+                    <div class="analytics-grid">
+                        <!-- Mood Analysis -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon mood">😊</div>
+                                <h4 class="analytics-title">Mood Detection</h4>
+                            </div>
+                            <div class="analytics-value" id="moodValue">Neutral</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="moodProgress" style="width: 60%;"></div>
+                            </div>
+                            <div class="analytics-description">Patient emotional state analysis</div>
+                        </div>
+
+                        <!-- Sentiment Analysis -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon sentiment">💬</div>
+                                <h4 class="analytics-title">Sentiment Analysis</h4>
+                            </div>
+                            <div class="analytics-value" id="sentimentValue">Positive</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="sentimentProgress" style="width: 75%;"></div>
+                            </div>
+                            <div class="analytics-description">Overall conversation tone</div>
+                        </div>
+
+                        <!-- Breathing Pattern -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon breathing">🫁</div>
+                                <h4 class="analytics-title">Breathing Pattern</h4>
+                            </div>
+                            <div class="analytics-value" id="breathingValue">16 BPM</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="breathingProgress" style="width: 80%;"></div>
+                            </div>
+                            <div class="analytics-description">Respiratory rate monitoring</div>
+                        </div>
+
+                        <!-- Stress Indicators -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon stress">⚡</div>
+                                <h4 class="analytics-title">Stress Level</h4>
+                            </div>
+                            <div class="analytics-value" id="stressValue">Low</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="stressProgress" style="width: 25%;"></div>
+                            </div>
+                            <div class="analytics-description">Voice tension and anxiety markers</div>
+                        </div>
+
+                        <!-- Speech Clarity -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon clarity">🎯</div>
+                                <h4 class="analytics-title">Speech Clarity</h4>
+                            </div>
+                            <div class="analytics-value" id="clarityValue">92%</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="clarityProgress" style="width: 92%;"></div>
+                            </div>
+                            <div class="analytics-description">Articulation and coherence</div>
+                        </div>
+
+                        <!-- Energy Level -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon energy">🔋</div>
+                                <h4 class="analytics-title">Energy Level</h4>
+                            </div>
+                            <div class="analytics-value" id="energyValue">Moderate</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="energyProgress" style="width: 65%;"></div>
+                            </div>
+                            <div class="analytics-description">Vocal fatigue detection</div>
+                        </div>
+
+                        <!-- Speech Pace -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon pace">🏃</div>
+                                <h4 class="analytics-title">Speech Pace</h4>
+                            </div>
+                            <div class="analytics-value" id="paceValue">Normal</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="paceProgress" style="width: 70%;"></div>
+                            </div>
+                            <div class="analytics-description">Speaking rate and rhythm</div>
+                        </div>
+
+                        <!-- Voice Volume -->
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <div class="analytics-icon volume">🔊</div>
+                                <h4 class="analytics-title">Voice Volume</h4>
+                            </div>
+                            <div class="analytics-value" id="volumeValue">Adequate</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill good" id="volumeProgress" style="width: 80%;"></div>
+                            </div>
+                            <div class="analytics-description">Vocal strength and projection</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Calls Tab -->
+            <div class="tab-content" id="pastTab">
+                <div class="past-calls-container">
+                    <div class="past-calls-header">
+                        <h3 class="past-calls-title">📋 Call History & Analytics</h3>
+                        <button class="refresh-btn" onclick="loadPastCalls(true)" id="refreshBtn">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div class="calls-list" id="callsList">
+                        <div class="loading-spinner">
+                            Loading call history...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let ws = null;
+        let isConnected = false;
+        let callStartTime = null;
+        let timerInterval = null;
+        let hasActiveCall = false;
+        let audioSmoothingBuffer = [];
+        let analyticsBuffer = {
+            mood: [],
+            sentiment: [],
+            breathing: [],
+            stress: [],
+            clarity: [],
+            energy: [],
+            pace: [],
+            volume: []
+        };
+        let lastUserActivity = null; // Track when user last spoke
+        let stats = {
+            audioChunks: 0,
+            transcripts: 0,
+            bytesReceived: 0
+        };
+        
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Auto-connection management
+        async function connect() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            statusText.textContent = 'Connecting...';
+            
+            // Get WebSocket URL from server config
+            let wsUrl = 'ws://localhost:8080';
+            
+            try {
+                const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+                const response = await fetch(`${serverUrl}/api/config`);
+                const config = await response.json();
+                wsUrl = config.downstreamWebSocketUrl;
+                console.log('Using WebSocket URL:', wsUrl);
+            } catch (error) {
+                console.error('Failed to get WebSocket URL from config, using default:', error);
+            }
+            
+            // Connect to WebSocket
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                isConnected = true;
+                statusIndicator.classList.add('connected');
+                statusText.textContent = 'Monitoring Active';
+                
+                console.log('Connected to live call stream');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    stats.bytesReceived += event.data.length;
+                    
+                    if (data.type === 'audio') {
+                        handleAudioData(data);
+                        if (!hasActiveCall) {
+                            startActiveCall();
+                        }
+                    } else if (data.type === 'transcript') {
+                        handleTranscriptData(data);
+                        if (!hasActiveCall) {
+                            startActiveCall();
+                        }
+                    } else if (data.type === 'call_ended') {
+                        handleCallEnd(data);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error parsing message:', error);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusText.textContent = 'Connection error';
+                // Attempt to reconnect after 3 seconds
+                setTimeout(() => {
+                    if (!isConnected) {
+                        connect();
+                    }
+                }, 3000);
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                statusIndicator.classList.remove('connected');
+                statusText.textContent = 'Reconnecting...';
+                
+                endActiveCall();
+                
+                // Attempt to reconnect after 2 seconds
+                setTimeout(() => {
+                    connect();
+                }, 2000);
+            };
+        }
+
+        function startActiveCall() {
+            hasActiveCall = true;
+            callStartTime = Date.now();
+            
+            // Generate mock patient data
+            const mockPatients = [
+                { name: 'Sarah Thompson', id: 'NHS-7834521', phone: '+44 7911 123456' },
+                { name: 'James Wilson', id: 'NHS-9012345', phone: '+44 7700 900321' },
+                { name: 'Emma Clarke', id: 'NHS-5678901', phone: '+44 7912 654789' },
+                { name: 'Michael Brown', id: 'NHS-2345678', phone: '+44 7845 321098' },
+                { name: 'Lisa Davis', id: 'NHS-8901234', phone: '+44 7733 456123' }
+            ];
+            
+            const randomPatient = mockPatients[Math.floor(Math.random() * mockPatients.length)];
+            
+            // Show active call status and populate patient data
+            const callStatusCard = document.getElementById('callStatusCard');
+            callStatusCard.style.display = 'block';
+            
+            // Update patient information
+            document.getElementById('patientName').textContent = randomPatient.name;
+            document.getElementById('patientId').textContent = randomPatient.id;
+            document.getElementById('patientPhone').textContent = randomPatient.phone;
+            document.getElementById('callInitiated').textContent = new Date().toLocaleTimeString();
+            
+            // Clear analytics buffers for new call (start fresh)
+            Object.keys(analyticsBuffer).forEach(key => {
+                analyticsBuffer[key] = [];
+            });
+            
+            startCallTimer();
+        }
+
+        function endActiveCall() {
+            hasActiveCall = false;
+            
+            // Update call status to show completed call
+            const callTitle = document.querySelector('#callStatusCard h3');
+            if (callTitle) {
+                callTitle.innerHTML = '✅ Call Completed';
+                callTitle.style.color = 'var(--success-green)';
+            }
+            
+            // Keep call status card visible but stop timer
+            stopCallTimer();
+            
+            // Clear waveform and stop animation
+            const waveform = document.getElementById('waveform');
+            const noAudio = document.getElementById('noAudio');
+            waveform.style.display = 'none';
+            noAudio.style.display = 'block';
+            noAudio.textContent = 'Call ended - no audio data';
+            
+            // Stop all waveform animations
+            const bars = document.querySelectorAll('.wave-bar');
+            bars.forEach(bar => {
+                bar.style.height = '20px';
+                bar.style.animation = 'none';
+            });
+            
+            // Clear audio smoothing buffer but keep analytics showing last call data
+            audioSmoothingBuffer = [];
+            // DON'T clear analytics buffers - keep showing last call's data
+            // DON'T reset analytics - they should persist until next call
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        // Audio visualization (monitoring only, no playback)
+        function handleAudioData(data) {
+            stats.audioChunks++;
+            
+            const waveform = document.getElementById('waveform');
+            const noAudio = document.getElementById('noAudio');
+            
+            // Show waveform
+            waveform.style.display = 'flex';
+            noAudio.style.display = 'none';
+            
+            // Create waveform bars if they don't exist
+            if (waveform.children.length === 0) {
+                for (let i = 0; i < 40; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'wave-bar';
+                    bar.style.height = '20px';
+                    waveform.appendChild(bar);
+                }
+            }
+            
+            // Animate waveform based on audio data
+            if (data.data && data.data.length > 0) {
+                const audioArray = new Int16Array(data.data);
+                const amplitude = calculateAmplitude(audioArray);
+                animateWaveform(amplitude);
+            }
+        }
+
+        function calculateAmplitude(audioData) {
+            let sum = 0;
+            for (let i = 0; i < audioData.length; i++) {
+                sum += Math.abs(audioData[i]);
+            }
+            return sum / audioData.length / 32768; // Normalize to 0-1
+        }
+
+        function smoothAmplitude(newAmplitude) {
+            // Add to smoothing buffer (smaller buffer for more responsiveness)
+            audioSmoothingBuffer.push(newAmplitude);
+            if (audioSmoothingBuffer.length > 3) {
+                audioSmoothingBuffer.shift(); // Keep only last 3 values for light smoothing
+            }
+            
+            // Calculate smoothed average
+            const sum = audioSmoothingBuffer.reduce((a, b) => a + b, 0);
+            return sum / audioSmoothingBuffer.length;
+        }
+
+        function animateWaveform(amplitude) {
+            const smoothedAmplitude = smoothAmplitude(amplitude);
+            const bars = document.querySelectorAll('.wave-bar');
+            
+            bars.forEach((bar, index) => {
+                // Similar to original but with light smoothing
+                const height = Math.max(20, smoothedAmplitude * 80 * (0.5 + Math.random() * 0.5));
+                bar.style.height = `${height}px`;
+                bar.style.animationDuration = `${1 + Math.random() * 0.5}s`;
+            });
+        }
+
+        // Transcript handling
+        function handleTranscriptData(data) {
+            stats.transcripts++;
+            
+            const container = document.getElementById('transcriptContainer');
+            
+            // Hide "no data" message and adjust container layout on first transcript
+            if (stats.transcripts === 1) {
+                const noTranscripts = document.getElementById('noTranscripts');
+                if (noTranscripts) {
+                    noTranscripts.style.display = 'none';
+                }
+                // Change container to scroll layout when transcripts start
+                container.style.height = '300px';
+                container.style.display = 'block';
+                container.style.alignItems = 'flex-start';
+                container.style.justifyContent = 'flex-start';
+            }
+            
+            // Create transcript entry
+            const entry = document.createElement('div');
+            const speaker = data.data.speaker || 'Unknown';
+            const isUser = speaker.toLowerCase().includes('user') || speaker.toLowerCase().includes('patient');
+            
+            // Track user activity for analytics
+            if (isUser) {
+                lastUserActivity = Date.now();
+            }
+            
+            entry.className = `transcript-entry ${isUser ? 'user' : 'assistant'}`;
+            
+            entry.innerHTML = `
+                <div class="transcript-speaker ${isUser ? 'user' : 'assistant'}">
+                    <span class="speaker-badge ${isUser ? 'user' : 'assistant'}">
+                        ${isUser ? '👤 Patient' : '🤖 AI Assistant'}
+                    </span>
+                </div>
+                <div class="transcript-text">${data.data.text}</div>
+                <div class="transcript-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Voice analytics simulation with smoothing (user-focused)
+        function updateVoiceAnalytics() {
+            if (!hasActiveCall) return;
+            
+            // Only update analytics if user has spoken recently (within last 10 seconds)
+            // This simulates analyzing only the patient's voice, not the AI assistant
+            const timeSinceUserSpoke = lastUserActivity ? Date.now() - lastUserActivity : Infinity;
+            const shouldUpdateAnalytics = timeSinceUserSpoke < 10000; // 10 seconds
+            
+            if (!shouldUpdateAnalytics && lastUserActivity !== null) {
+                // User hasn't spoken recently, don't update analytics
+                return;
+            }
+            
+            // Generate new analytics data (simulating analysis of user's voice only)
+            const newAnalytics = {
+                mood: generateMoodData(),
+                sentiment: generateSentimentData(),
+                breathing: generateBreathingData(),
+                stress: generateStressData(),
+                clarity: generateClarityData(),
+                energy: generateEnergyData(),
+                pace: generatePaceData(),
+                volume: generateVolumeData()
+            };
+            
+            // Apply smoothing to each metric
+            Object.keys(newAnalytics).forEach(key => {
+                const smoothedData = smoothAnalytic(key, newAnalytics[key]);
+                updateAnalyticsCard(key, smoothedData);
+            });
+        }
+
+        function smoothAnalytic(type, newData) {
+            // Add to buffer
+            if (!analyticsBuffer[type]) analyticsBuffer[type] = [];
+            analyticsBuffer[type].push(newData);
+            
+            // Keep only last 5 values for smoother transitions
+            if (analyticsBuffer[type].length > 5) {
+                analyticsBuffer[type].shift();
+            }
+            
+            // Calculate smoothed values
+            const buffer = analyticsBuffer[type];
+            const avgPercentage = buffer.reduce((sum, item) => sum + item.percentage, 0) / buffer.length;
+            
+            // Use the most recent value but smoothed percentage
+            return {
+                value: newData.value,
+                percentage: avgPercentage,
+                status: avgPercentage > 70 ? 'good' : avgPercentage > 40 ? 'warning' : 'danger'
+            };
+        }
+
+        function updateAnalyticsCard(type, data) {
+            const valueElement = document.getElementById(`${type}Value`);
+            const progressElement = document.getElementById(`${type}Progress`);
+            
+            // Smooth value updates
+            if (valueElement.textContent !== data.value) {
+                valueElement.style.opacity = '0.7';
+                setTimeout(() => {
+                    valueElement.textContent = data.value;
+                    valueElement.style.opacity = '1';
+                }, 150);
+            }
+            
+            // Smooth progress bar updates
+            progressElement.style.width = `${data.percentage}%`;
+            progressElement.className = `progress-fill ${data.status}`;
+        }
+
+        // Analytics data generators
+        function generateMoodData() {
+            const moods = ['Happy', 'Neutral', 'Concerned', 'Anxious', 'Calm'];
+            const mood = moods[Math.floor(Math.random() * moods.length)];
+            const percentage = 40 + Math.random() * 50;
+            const status = percentage > 70 ? 'good' : percentage > 40 ? 'warning' : 'danger';
+            return { value: mood, percentage, status };
+        }
+
+        function generateSentimentData() {
+            const sentiments = ['Very Positive', 'Positive', 'Neutral', 'Negative'];
+            const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+            const percentage = 30 + Math.random() * 60;
+            const status = percentage > 60 ? 'good' : percentage > 30 ? 'warning' : 'danger';
+            return { value: sentiment, percentage, status };
+        }
+
+        function generateBreathingData() {
+            const rate = 12 + Math.floor(Math.random() * 8); // 12-20 BPM
+            const percentage = Math.min(100, Math.max(0, (20 - Math.abs(rate - 16)) * 5));
+            const status = rate >= 12 && rate <= 20 ? 'good' : 'warning';
+            return { value: `${rate} BPM`, percentage, status };
+        }
+
+        function generateStressData() {
+            const levels = ['Very Low', 'Low', 'Moderate', 'High', 'Very High'];
+            const level = levels[Math.floor(Math.random() * levels.length)];
+            const percentage = Math.random() * 100;
+            const status = percentage < 40 ? 'good' : percentage < 70 ? 'warning' : 'danger';
+            return { value: level, percentage, status };
+        }
+
+        function generateClarityData() {
+            const clarity = 75 + Math.random() * 20; // 75-95%
+            const status = clarity > 85 ? 'good' : clarity > 70 ? 'warning' : 'danger';
+            return { value: `${Math.round(clarity)}%`, percentage: clarity, status };
+        }
+
+        function generateEnergyData() {
+            const levels = ['Very Low', 'Low', 'Moderate', 'High', 'Very High'];
+            const level = levels[Math.floor(Math.random() * levels.length)];
+            const percentage = 20 + Math.random() * 70;
+            const status = percentage > 50 ? 'good' : percentage > 30 ? 'warning' : 'danger';
+            return { value: level, percentage, status };
+        }
+
+        function generatePaceData() {
+            const paces = ['Very Slow', 'Slow', 'Normal', 'Fast', 'Very Fast'];
+            const pace = paces[Math.floor(Math.random() * paces.length)];
+            const percentage = 30 + Math.random() * 60; // 30-90%
+            const status = percentage > 40 && percentage < 80 ? 'good' : 'warning'; // Normal range
+            return { value: pace, percentage, status };
+        }
+
+        function generateVolumeData() {
+            const volumes = ['Very Quiet', 'Quiet', 'Adequate', 'Loud', 'Very Loud'];
+            const volume = volumes[Math.floor(Math.random() * volumes.length)];
+            const percentage = 25 + Math.random() * 70; // 25-95%
+            const status = percentage > 40 && percentage < 85 ? 'good' : percentage > 85 ? 'warning' : 'danger';
+            return { value: volume, percentage, status };
+        }
+
+        // Timer functions
+        function startCallTimer() {
+            timerInterval = setInterval(() => {
+                if (!callStartTime) return;
+                
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('callTimer').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            callStartTime = null;
+        }
+
+
+        function resetAnalyticsToWaiting() {
+            // Reset all analytics to waiting/neutral state
+            const waitingAnalytics = {
+                mood: { value: 'Waiting...', percentage: 0, status: 'warning' },
+                sentiment: { value: 'Waiting...', percentage: 0, status: 'warning' },
+                breathing: { value: '-- BPM', percentage: 0, status: 'warning' },
+                stress: { value: 'Waiting...', percentage: 0, status: 'warning' },
+                clarity: { value: '--%', percentage: 0, status: 'warning' },
+                energy: { value: 'Waiting...', percentage: 0, status: 'warning' },
+                pace: { value: 'Waiting...', percentage: 0, status: 'warning' },
+                volume: { value: 'Waiting...', percentage: 0, status: 'warning' }
+            };
+            
+            Object.keys(waitingAnalytics).forEach(key => {
+                updateAnalyticsCard(key, waitingAnalytics[key]);
+            });
+            
+            // Reset analytics status
+            updateAnalyticsStatus(false);
+        }
+
+        // Update analytics status indicator
+        function updateAnalyticsStatus(isActive) {
+            const indicator = document.getElementById('analyticsIndicator');
+            const statusText = document.getElementById('analyticsStatusText');
+            
+            // Check if elements exist (they might not be in the current version)
+            if (indicator && statusText) {
+                if (isActive) {
+                    indicator.style.background = 'var(--success-green)';
+                    statusText.textContent = 'Analyzing patient voice...';
+                } else {
+                    indicator.style.background = 'var(--warning-amber)';
+                    statusText.textContent = 'Waiting for patient voice...';
+                }
+            }
+        }
+
+        function handleCallEnd(data) {
+            console.log('Call ended');
+            
+            // End active call
+            endActiveCall();
+            
+            // Add call end marker to transcripts
+            const container = document.getElementById('transcriptContainer');
+            const endEntry = document.createElement('div');
+            endEntry.className = 'transcript-entry';
+            endEntry.style.background = '#fee2e2';
+            endEntry.style.borderLeft = '4px solid var(--error-red)';
+            endEntry.innerHTML = `
+                <div class="transcript-text" style="text-align: center; font-weight: 600; color: var(--error-red);">
+                    --- Call Ended ---
+                </div>
+                <div class="transcript-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            container.appendChild(endEntry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Synthflow API integration
+        const SYNTHFLOW_API_BASE = 'https://api.synthflow.ai/v2';
+        let SYNTHFLOW_API_KEY = null;
+        let SYNTHFLOW_MODEL_ID = null;
+
+        // Caching system
+        let callsCache = {
+            data: null,
+            analytics: null,
+            timestamp: null,
+            ttl: 5 * 60 * 1000 // 5 minutes cache
+        };
+
+        // Load Synthflow configuration
+        async function loadSynthflowConfig() {
+            try {
+                const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+                
+                const response = await fetch(`${serverUrl}/api/config`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const config = await response.json();
+                // Use existing API key from .env file
+                SYNTHFLOW_API_KEY = config.synthflowApiKey;
+                SYNTHFLOW_MODEL_ID = config.synthflowAssistantId; // Using assistant ID as model ID
+                
+            } catch (error) {
+                console.error('Failed to load Synthflow config:', error);
+                console.error('Make sure your server is running and .env file has SYNTHFLOW_API_KEY and SYNTHFLOW_ASSISTANT_ID');
+            }
+        }
+
+        // Check if cache is valid
+        function isCacheValid() {
+            return callsCache.timestamp && 
+                   callsCache.data && 
+                   callsCache.analytics &&
+                   (Date.now() - callsCache.timestamp) < callsCache.ttl;
+        }
+
+        // Fetch analytics data from Synthflow via server
+        async function fetchAnalyticsData() {
+            const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+            const response = await fetch(`${serverUrl}/api/synthflow/analytics/${SYNTHFLOW_MODEL_ID}`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Analytics API HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        }
+
+        // Fetch calls data from Synthflow via server
+        async function fetchCallsData() {
+            const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+            const response = await fetch(`${serverUrl}/api/synthflow/calls/${SYNTHFLOW_MODEL_ID}?limit=20`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Calls API HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            if (data.status === 'ok' && data.response && data.response.calls) {
+                return data.response.calls;
+            } else {
+                throw new Error('Invalid response format from Synthflow API');
+            }
+        }
+
+        // Main function to load past calls with analytics
+        async function loadPastCalls(forceRefresh = false) {
+            const callsList = document.getElementById('callsList');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            
+            if (!SYNTHFLOW_API_KEY || !SYNTHFLOW_MODEL_ID) {
+                callsList.innerHTML = `
+                    <div class="error-message">
+                        <h4>Configuration Debug Info</h4>
+                        <p><strong>API Key:</strong> ${SYNTHFLOW_API_KEY ? 'Configured ✓' : 'Missing ✗'}</p>
+                        <p><strong>Model ID:</strong> ${SYNTHFLOW_MODEL_ID ? 'Configured ✓' : 'Missing ✗'}</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">
+                            Both API key and model ID are required for the Synthflow APIs.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Use cache if valid and not forcing refresh
+            if (!forceRefresh && isCacheValid()) {
+                displayCallsWithAnalytics(callsCache.data, callsCache.analytics);
+                return;
+            }
+            
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 Loading...';
+            
+            try {
+                // Fetch calls data first (we know this works)
+                const calls = await fetchCallsData();
+                
+                // Try to fetch analytics data, but don't fail if it doesn't work
+                let analytics = null;
+                try {
+                    analytics = await fetchAnalyticsData();
+                } catch (analyticsError) {
+                    // Continue without analytics data
+                }
+                
+                // Update cache
+                callsCache = {
+                    data: calls,
+                    analytics: analytics,
+                    timestamp: Date.now(),
+                    ttl: callsCache.ttl
+                };
+                
+                displayCallsWithAnalytics(calls, analytics);
+                
+            } catch (error) {
+                console.error('Error loading past calls:', error);
+                
+                let errorMessage = error.message;
+                let helpText = 'Check console for details.';
+                
+                if (error.message.includes('403')) {
+                    errorMessage = 'Access Forbidden (403)';
+                    helpText = `
+                        <strong>Possible causes:</strong><br>
+                        • Invalid API key - check your SYNTHFLOW_API_KEY in .env<br>
+                        • API key doesn't have permission to access call/analytics data<br>
+                        • Wrong model/assistant ID: ${SYNTHFLOW_MODEL_ID}<br>
+                        • API key might be expired or deactivated
+                    `;
+                } else if (error.message.includes('401')) {
+                    errorMessage = 'Unauthorized (401)';
+                    helpText = 'API key is missing or invalid. Check your SYNTHFLOW_API_KEY in .env file.';
+                }
+                
+                callsList.innerHTML = `
+                    <div class="error-message">
+                        <h4>Error Loading Data</h4>
+                        <p><strong>Error:</strong> ${errorMessage}</p>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; line-height: 1.4;">
+                            ${helpText}
+                        </div>
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 6px; font-family: monospace; font-size: 0.8rem;">
+                            <strong>Debug Info:</strong><br>
+                            API Key: ${SYNTHFLOW_API_KEY ? `${SYNTHFLOW_API_KEY.substring(0, 12)}...` : 'NOT SET'}<br>
+                            Model ID: ${SYNTHFLOW_MODEL_ID || 'NOT SET'}<br>
+                            Calls URL: ${SYNTHFLOW_API_BASE}/calls?model_id=${SYNTHFLOW_MODEL_ID}&limit=20<br>
+                            Analytics URL: ${SYNTHFLOW_API_BASE}/analytics/?model_id=${SYNTHFLOW_MODEL_ID}
+                        </div>
+                    </div>
+                `;
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh';
+            }
+        }
+
+        // Display calls with analytics in the UI
+        function displayCallsWithAnalytics(calls, analytics) {
+            const callsList = document.getElementById('callsList');
+            
+            if (!calls || calls.length === 0) {
+                callsList.innerHTML = `
+                    <div class="no-calls">
+                        <h4>No Calls Found</h4>
+                        <p>No call history available for this model.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create analytics overview
+            const analyticsOverview = createAnalyticsOverviewHtml(analytics);
+            
+            // Create calls list
+            const callsHtml = calls.map(call => createEnhancedCallItemHtml(call, analytics)).join('');
+            
+            callsList.innerHTML = analyticsOverview + callsHtml;
+        }
+
+        // Create analytics overview section
+        function createAnalyticsOverviewHtml(analytics) {
+            if (!analytics) {
+                // Show a notice that analytics are not available
+                return `
+                    <div style="background: rgba(255, 184, 28, 0.1); border: 1px solid var(--warning-amber); color: var(--text-primary); padding: 1rem; margin-bottom: 1rem; border-radius: 12px;">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--warning-amber);">⚠️ Analytics Not Available</h3>
+                        <p style="margin: 0; font-size: 0.9rem;">Your API key doesn't have permission to access analytics data. Showing call history only.</p>
+                    </div>
+                `;
+            }
+            
+            const stats = {
+                totalCalls: analytics.duration_metrics?.total_calls || 0,
+                totalMinutes: analytics.duration_metrics?.total_minutes || 0,
+                avgDuration: analytics.duration_metrics?.average_duration || 0,
+                successRate: analytics.assistant_performance?.by_success_rate?.[0]?.success_rate || 0,
+                positivesentiment: analytics.sentiment_stat?.positive_percentage || 0
+            };
+            
+            return `
+                <div style="background: linear-gradient(135deg, var(--nhs-blue), var(--nhs-light-blue)); color: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 12px;">
+                    <h3 style="margin: 0 0 1rem 0; font-size: 1.2rem;">📊 Analytics Overview</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700;">${stats.totalCalls}</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Total Calls</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700;">${Math.round(stats.totalMinutes)}m</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Total Minutes</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700;">${Math.round(stats.avgDuration * 60)}s</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Avg Duration</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700;">${Math.round(stats.successRate)}%</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Success Rate</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700;">${Math.round(stats.positivesentiment)}%</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Positive Sentiment</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create enhanced HTML for a single call item with analytics
+        function createEnhancedCallItemHtml(call, analytics) {
+            const callDate = new Date(call.telephony_start).toLocaleDateString();
+            const callTime = new Date(call.telephony_start).toLocaleTimeString();
+            const duration = formatDuration(call.duration || 0);
+            const isSuccessful = call.end_call_reason !== 'failed';
+            
+            // Find matching analytics data for this call
+            const recentCall = analytics?.recent_call_history?.items?.find(item => item.call_id === call.call_id);
+            const callSentiment = getCallSentiment(call, analytics);
+            const executedActions = getExecutedActions(call, analytics);
+            
+            return `
+                <div class="call-item" onclick="toggleCallDetails('${call.call_id}')">
+                    <div class="call-header">
+                        <div class="call-basic-info">
+                            <div class="call-title">
+                                ${call.name || 'Unknown Caller'} - ${call.phone_number_to || 'No Number'}
+                            </div>
+                            <div class="call-meta">
+                                <span>📅 ${callDate} at ${callTime}</span>
+                                <span>⏱️ ${duration}</span>
+                                <span class="call-status">
+                                    <div class="status-dot ${isSuccessful ? '' : 'failed'}"></div>
+                                    ${isSuccessful ? 'Completed' : 'Failed'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="expand-icon">▼</div>
+                    </div>
+                    <div class="call-details" id="details-${call.call_id}">
+                        <div class="call-details-grid">
+                            <div class="detail-section">
+                                <div class="detail-title">
+                                    📞 Call Information
+                                </div>
+                                <div class="detail-content">
+                                    <p><strong>From:</strong> ${call.phone_number_from || 'Unknown'}</p>
+                                    <p><strong>To:</strong> ${call.phone_number_to || 'Unknown'}</p>
+                                    <p><strong>Duration:</strong> ${duration}</p>
+                                    <p><strong>End Reason:</strong> ${call.end_call_reason || 'Unknown'}</p>
+                                    <p><strong>Campaign:</strong> ${call.campaign_type || 'Unknown'}</p>
+                                    ${recentCall ? `<p><strong>Agent:</strong> ${recentCall.agent_name || 'Unknown'}</p>` : ''}
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-title">
+                                    🎵 Recording & Technical
+                                </div>
+                                <div class="detail-content">
+                                    <p><strong>Telephony Duration:</strong> ${formatDuration(call.telephony_duration || 0)}</p>
+                                    <p><strong>Hangup:</strong> ${call.telephony_hangup || 'Unknown'}</p>
+                                    <p><strong>Disconnect Reason:</strong> ${call.telephony_disconnect_reason || 'Unknown'}</p>
+                                    ${call.recording_url ? `<p><strong>Recording:</strong> <a href="${call.recording_url}" target="_blank">🎵 Listen</a></p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${executedActions.length > 0 ? `
+                            <div class="detail-section" style="grid-column: 1 / -1; margin-top: 1rem;">
+                                <div class="detail-title">
+                                    ⚡ Actions Executed
+                                </div>
+                                <div class="detail-content">
+                                    ${executedActions.map(action => `
+                                        <div style="display: inline-block; background: rgba(0, 94, 184, 0.1); color: var(--nhs-blue); padding: 0.25rem 0.75rem; border-radius: 20px; margin: 0.25rem; font-size: 0.85rem;">
+                                            ${action.name} (${action.value})
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${call.transcript ? `
+                            <div class="detail-section" style="grid-column: 1 / -1; margin-top: 1rem;">
+                                <div class="detail-title">
+                                    📝 Conversation Transcript
+                                </div>
+                                <div class="transcript-preview">${formatTranscript(call.transcript)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${callSentiment ? `
+                            <div class="detail-section" style="grid-column: 1 / -1; margin-top: 1rem;">
+                                <div class="detail-title">
+                                    💭 Call Analytics
+                                </div>
+                                <div class="detail-content">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 0.75rem;">
+                                        <div style="text-align: center; padding: 1rem; background: rgba(0, 164, 153, 0.1); border-radius: 8px;">
+                                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--success-green);">${callSentiment}</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Sentiment</div>
+                                        </div>
+                                        <div style="text-align: center; padding: 1rem; background: rgba(0, 94, 184, 0.1); border-radius: 8px;">
+                                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--nhs-blue);">${Math.round(call.duration / 60)}m</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Talk Time</div>
+                                        </div>
+                                        <div style="text-align: center; padding: 1rem; background: rgba(255, 184, 28, 0.1); border-radius: 8px;">
+                                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--warning-amber);">${isSuccessful ? 'Success' : 'Failed'}</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Outcome</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Helper function to get call sentiment
+        function getCallSentiment(call, analytics) {
+            // This is a simplified approach - in a real implementation, 
+            // you'd match individual call sentiment data
+            if (analytics?.sentiment_stat?.positive_percentage > 70) {
+                return 'Positive';
+            } else if (analytics?.sentiment_stat?.positive_percentage > 40) {
+                return 'Neutral';
+            } else {
+                return 'Negative';
+            }
+        }
+
+        // Helper function to get executed actions for a call
+        function getExecutedActions(call, analytics) {
+            // Return a subset of executed actions from analytics
+            // In a real implementation, you'd match actions to specific calls
+            return analytics?.executed_actions?.items?.slice(0, 3) || [];
+        }
+
+        // Helper function to format transcript with better readability
+        function formatTranscript(transcript) {
+            if (!transcript) return 'No transcript available';
+            
+            return transcript
+                .split('\n')
+                .map(line => {
+                    if (line.startsWith('bot:')) {
+                        return `<div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(0, 164, 153, 0.1); border-left: 3px solid var(--success-green); border-radius: 4px;"><strong>🤖 Assistant:</strong> ${line.substring(4)}</div>`;
+                    } else if (line.startsWith('human:')) {
+                        return `<div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(0, 94, 184, 0.1); border-left: 3px solid var(--nhs-blue); border-radius: 4px;"><strong>👤 Patient:</strong> ${line.substring(6)}</div>`;
+                    } else {
+                        return `<div style="margin: 0.25rem 0;">${line}</div>`;
+                    }
+                })
+                .join('');
+        }
+
+        // Toggle call details expansion
+        function toggleCallDetails(callId) {
+            const callItem = document.querySelector(`#details-${callId}`).parentElement;
+            callItem.classList.toggle('expanded');
+        }
+
+        // Format duration in seconds to readable format
+        function formatDuration(seconds) {
+            if (!seconds || seconds < 1) return '0s';
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Reset analytics to waiting state initially
+            resetAnalyticsToWaiting();
+            
+            // Load Synthflow configuration
+            loadSynthflowConfig();
+            
+            // Auto-connect on page load
+            connect();
+            
+            // Load past calls initially
+            setTimeout(() => {
+                loadPastCalls();
+            }, 1000);
+            
+            // Update analytics periodically when there's an active call
+            setInterval(() => {
+                if (hasActiveCall) {
+                    updateVoiceAnalytics();
+                }
+            }, 5000); // Slower updates for smoother experience
+        });
+    </script>
+</body>
+</html>

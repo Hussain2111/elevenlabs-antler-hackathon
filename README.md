@@ -1,12 +1,13 @@
 # GP Surgery AI Voice Assistant
 
-A production-ready GP surgery website with an integrated AI voice assistant. Features real-time voice calls with Synthflow AI, live transcription via Deepgram, and WebSocket streaming for downstream applications.
+A production-ready GP surgery website with an integrated AI voice assistant. Features real-time voice calls with Synthflow AI, live transcription via Deepgram, WebSocket streaming for downstream applications, and a clinician dashboard for monitoring patient calls.
 
 ## ✨ Key Features
 
 - 🎙️ **Real-time Voice Calls** with AI assistant
 - 📝 **Live Transcription** with duplicate detection  
 - 🔊 **Audio/Transcript Streaming** to external applications
+- 🏥 **Clinician Dashboard** with voice analytics and call history
 - 💬 **Clean Call Widget** with proper state management
 - 🚀 **Production Deployed** on Azure Container Apps
 - 📱 **Responsive Design** works on all devices
@@ -32,6 +33,7 @@ npm start
 **Local URLs:**
 - Main app: `http://localhost:3000`
 - Test client: `http://localhost:3000/test-react-client.html`
+- Clinician dashboard: `http://localhost:3000/clinician-dashboard.html`
 
 ### 2. Deploy to Azure
 ```bash
@@ -45,6 +47,7 @@ az login
 **Production URLs:**
 - Main app: `https://your-app.azurecontainer.io`
 - Test client: `https://your-app.azurecontainer.io/test-react-client.html`
+- Clinician dashboard: `https://your-app.azurecontainer.io/clinician-dashboard.html`
 
 ## 📱 How to Use
 
@@ -52,6 +55,13 @@ az login
 2. **Grant permissions**: Allow microphone access  
 3. **Talk naturally**: AI responds in real-time
 4. **End call**: Click red button to stop
+
+### Clinician Dashboard
+
+1. **Monitor live calls**: View real-time audio waveforms and transcripts
+2. **Voice analytics**: Track mood, sentiment, and health indicators  
+3. **Call history**: Browse past calls with detailed analytics
+4. **Auto-refresh**: Data cached for 5 minutes, refreshes automatically
 
 ## 🔌 Integrate with Your React App
 
@@ -163,6 +173,7 @@ User ──► GP Website ──► Synthflow AI ──► Audio Response
 
 - `index.html` - Main GP surgery website
 - `test-react-client.html` - Example integration 
+- `clinician-dashboard.html` - Medical dashboard for call monitoring
 - `server/server.js` - Express server + WebSocket
 - `src/components/CallWidget.js` - Call interface
 - `deploy-simple.sh` - Azure deployment script
@@ -171,6 +182,8 @@ User ──► GP Website ──► Synthflow AI ──► Audio Response
 
 - `GET /api/config` - WebSocket URL for frontend
 - `GET /api/synthflow/session/:id` - Get voice session
+- `GET /api/synthflow/calls/:modelId` - Get call history
+- `GET /api/synthflow/analytics/:modelId` - Get call analytics
 - `GET /api/deepgram/token` - Get transcription auth
 
 ## 🐛 Troubleshooting

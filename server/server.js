@@ -4,14 +4,36 @@ const path = require('path');
 const axios = require('axios');
 const { createClient } = require('@deepgram/sdk');
 const WebSocket = require('ws');
+const { auth, requiresAuth } = require('express-openid-connect');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Auth0 configuration
+const authConfig = {
+  authRequired: false, // Don't require auth for API endpoints
+  auth0Logout: true,
+  secret: process.env.AUTH0_SECRET,
+  baseURL: process.env.BASE_URL || `http://localhost:${PORT}`,
+  clientID: process.env.AUTH0_CLIENT_ID,
+  issuerBaseURL: process.env.AUTH0_DOMAIN,
+  session: {
+    rollingDuration: 24 * 60 * 60, // 24 hours
+    absoluteDuration: 7 * 24 * 60 * 60 // 7 days
+  },
+  routes: {
+    login: '/login',
+    logout: '/logout',
+    callback: '/callback'
+  },
+  attemptSilentLogin: true
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(auth(authConfig));
 app.use(express.static(path.join(__dirname, '..')));
 
 // Serve static files
@@ -67,6 +89,91 @@ app.get('/api/synthflow/session/:assistantId', async (req, res) => {
         });
     }
 });
+
+// Synthflow calls endpoint
+app.get('/api/synthflow/calls/:modelId', async (req, res) => {
+    try {
+        const { modelId } = req.params;
+        const { limit = 20, offset = 0 } = req.query;
+        const synthflowApiKey = process.env.SYNTHFLOW_API_KEY;
+        
+        if (!synthflowApiKey) {
+            return res.status(500).json({ error: 'Synthflow API key not configured' });
+        }
+        
+        if (!modelId) {
+            return res.status(400).json({ error: 'Model ID is required' });
+        }
+        
+        const response = await axios.get('https://api.synthflow.ai/v2/calls', {
+            headers: {
+                'Authorization': `Bearer ${synthflowApiKey}`
+            },
+            params: {
+                model_id: modelId,
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            }
+        });
+        
+        res.json(response.data);
+        
+    } catch (error) {
+        console.error('Error getting Synthflow calls:', error.response?.data || error.message);
+        
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to get calls';
+        const statusCode = error.response?.status || 500;
+        
+        res.status(statusCode).json({ 
+            error: errorMessage,
+            details: error.response?.data || 'Network or authentication error'
+        });
+    }
+});
+
+// Synthflow analytics endpoint
+app.get('/api/synthflow/analytics/:modelId', async (req, res) => {
+    try {
+        const { modelId } = req.params;
+        const { from_date, to_date, type_of_call } = req.query;
+        const synthflowApiKey = process.env.SYNTHFLOW_API_KEY;
+        
+        if (!synthflowApiKey) {
+            return res.status(500).json({ error: 'Synthflow API key not configured' });
+        }
+        
+        if (!modelId) {
+            return res.status(400).json({ error: 'Model ID is required' });
+        }
+        
+        const params = { model_id: modelId };
+        if (from_date) params.from_date = from_date;
+        if (to_date) params.to_date = to_date;
+        if (type_of_call) params.type_of_call = type_of_call;
+        
+        const response = await axios.get('https://api.synthflow.ai/v2/analytics/', {
+            headers: {
+                'Authorization': `Bearer ${synthflowApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            params
+        });
+        
+        res.json(response.data);
+        
+    } catch (error) {
+        console.error('Error getting Synthflow analytics:', error.response?.data || error.message);
+        
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to get analytics';
+        const statusCode = error.response?.status || 500;
+        
+        res.status(statusCode).json({ 
+            error: errorMessage,
+            details: error.response?.data || 'Network or authentication error'
+        });
+    }
+});
+
 
 // Deepgram token endpoint
 app.get('/api/deepgram/token', (req, res) => {
@@ -206,13 +313,30 @@ app.get('/api/config', (req, res) => {
     
     res.json({
         synthflowAssistantId: process.env.SYNTHFLOW_ASSISTANT_ID || '',
+        synthflowApiKey: process.env.SYNTHFLOW_API_KEY || '',
         downstreamWebSocketUrl: wsUrl
     });
 });
 
-// Serve the main HTML file
-app.get('/', (req, res) => {
+// Protected HTML routes (require authentication)
+app.get('/', requiresAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
+});
+
+app.get('/clinician-dashboard.html', requiresAuth(), (req, res) => {
+    res.sendFile(path.join(__dirname, '../clinician-dashboard.html'));
+});
+
+app.get('/test-react-client.html', requiresAuth(), (req, res) => {
+    res.sendFile(path.join(__dirname, '../test-react-client.html'));
+});
+
+// API endpoint to get user info (protected)
+app.get('/api/user', requiresAuth(), (req, res) => {
+    res.json({
+        user: req.oidc.user,
+        isAuthenticated: req.oidc.isAuthenticated()
+    });
 });
 
 // Error handling middleware
