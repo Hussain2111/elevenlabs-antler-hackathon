@@ -18,10 +18,10 @@ console.log('- AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN || 'MISSING');
 console.log('- BASE_URL:', process.env.BASE_URL || 'MISSING');
 
 const authConfig = {
-  authRequired: false, // Don't require auth for API endpoints
+  authRequired: false, // Set to false globally, then protect specific routes
   auth0Logout: true,
   secret: process.env.AUTH0_SECRET,
-  baseURL: process.env.BASE_URL || `http://localhost:${PORT}`, // Back to string
+  baseURL: process.env.BASE_URL || `http://localhost:${PORT}`,
   clientID: process.env.AUTH0_CLIENT_ID,
   issuerBaseURL: process.env.AUTH0_DOMAIN,
   session: {
@@ -30,7 +30,7 @@ const authConfig = {
   },
   routes: {
     login: '/login',
-    logout: '/logout',
+    logout: '/logout', 
     callback: '/callback'
   },
   attemptSilentLogin: true
@@ -344,7 +344,7 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// Protected HTML routes (require authentication)
+// Protected HTML routes (require authentication) - Auth0 will handle redirects
 app.get('/', requiresAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
 });
@@ -357,7 +357,7 @@ app.get('/test-react-client.html', requiresAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, '../test-react-client.html'));
 });
 
-// Debug endpoint to check Auth0 config
+// Debug endpoint to check Auth0 config and headers
 app.get('/api/debug/auth0', (req, res) => {
     res.json({
         baseURL: process.env.BASE_URL,
@@ -365,16 +365,43 @@ app.get('/api/debug/auth0', (req, res) => {
         clientID: process.env.AUTH0_CLIENT_ID,
         secretConfigured: !!process.env.AUTH0_SECRET,
         finalBaseURL: authConfig.baseURL,
-        isAuthenticated: req.oidc?.isAuthenticated() || false
+        isAuthenticated: req.oidc?.isAuthenticated() || false,
+        requestInfo: {
+            host: req.get('host'),
+            origin: req.get('origin'),
+            'x-forwarded-proto': req.get('x-forwarded-proto'),
+            'x-forwarded-host': req.get('x-forwarded-host'),
+            'x-forwarded-for': req.get('x-forwarded-for'),
+            'user-agent': req.get('user-agent'),
+            protocol: req.protocol,
+            secure: req.secure,
+            ip: req.ip,
+            ips: req.ips
+        }
     });
 });
 
-// API endpoint to get user info (protected)
-app.get('/api/user', requiresAuth(), (req, res) => {
-    res.json({
-        user: req.oidc.user,
-        isAuthenticated: req.oidc.isAuthenticated()
-    });
+// API endpoint to get user info (with CORS handling)
+app.get('/api/user', (req, res) => {
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', req.get('origin') || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    
+    // Check if user is authenticated
+    if (req.oidc && req.oidc.isAuthenticated()) {
+        res.json({
+            user: req.oidc.user,
+            isAuthenticated: true
+        });
+    } else {
+        // If not authenticated, trigger login
+        res.status(401).json({
+            isAuthenticated: false,
+            loginUrl: `/login?returnTo=${encodeURIComponent(req.originalUrl)}`
+        });
+    }
 });
 
 // Error handling middleware
