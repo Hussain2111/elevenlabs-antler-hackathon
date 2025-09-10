@@ -22,7 +22,16 @@ function getBaseURL(req) {
   if (req) {
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
     const host = req.get('x-forwarded-host') || req.get('host');
-    return `${protocol}://${host}`;
+    const detectedURL = `${protocol}://${host}`;
+    
+    console.log('Detected URL for Auth0:', detectedURL);
+    console.log('Headers:', {
+      'x-forwarded-proto': req.get('x-forwarded-proto'),
+      'x-forwarded-host': req.get('x-forwarded-host'),
+      'host': req.get('host')
+    });
+    
+    return detectedURL;
   }
   // Fallback for initialization
   return process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -52,8 +61,23 @@ console.log('Final Auth0 config baseURL:', authConfig.baseURL);
 // Trust proxy (required for Azure Container Apps with custom domains)
 app.set('trust proxy', true);
 
+// Enhanced CORS configuration to handle Auth0 issues
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://demo.axi.ai',
+    'https://gp-surgery-app.kindhill-4b358ea4.uksouth.azurecontainerapps.io',
+    'https://dev-6fke22jxs6hwpq3i.us.auth0.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(auth(authConfig));
 app.use(express.static(path.join(__dirname, '..')));
