@@ -17,11 +17,22 @@ console.log('- AUTH0_CLIENT_ID:', process.env.AUTH0_CLIENT_ID ? 'SET' : 'MISSING
 console.log('- AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN || 'MISSING');
 console.log('- BASE_URL:', process.env.BASE_URL || 'MISSING');
 
+// Dynamic base URL detection
+function getBaseURL(req) {
+  if (req) {
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const host = req.get('x-forwarded-host') || req.get('host');
+    return `${protocol}://${host}`;
+  }
+  // Fallback for initialization
+  return process.env.BASE_URL || `http://localhost:${PORT}`;
+}
+
 const authConfig = {
   authRequired: false, // Don't require auth for API endpoints
   auth0Logout: true,
   secret: process.env.AUTH0_SECRET,
-  baseURL: process.env.BASE_URL || `http://localhost:${PORT}`,
+  baseURL: getBaseURL, // Use function for dynamic detection
   clientID: process.env.AUTH0_CLIENT_ID,
   issuerBaseURL: process.env.AUTH0_DOMAIN,
   session: {
