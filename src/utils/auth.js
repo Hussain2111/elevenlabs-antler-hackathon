@@ -50,6 +50,15 @@ async function loadUserInfo() {
             } else {
                 window.location.href = '/login';
             }
+        } else if (response.status === 403) {
+            // User authenticated but access denied (wrong email domain)
+            const errorData = await response.json();
+            alert(errorData.error || 'Access denied. This application is restricted to @axi.ai email addresses only.');
+            if (errorData.loginUrl) {
+                window.location.href = errorData.loginUrl;
+            } else {
+                window.location.href = '/logout';
+            }
         }
     } catch (error) {
         // User not authenticated, redirect to login

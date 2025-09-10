@@ -34,7 +34,9 @@ const authConfig = {
     callback: '/callback',
     postLogoutRedirect: '/'
   },
-  attemptSilentLogin: true
+  attemptSilentLogin: true,
+  // Require organization membership (uncomment when Auth0 org is set up)
+  // organization: process.env.AUTH0_ORGANIZATION_ID
 };
 
 console.log('Final Auth0 config baseURL:', authConfig.baseURL);
@@ -345,16 +347,85 @@ app.get('/api/config', (req, res) => {
     });
 });
 
+// Email domain restriction middleware
+function checkAxiEmailDomain(req, res, next) {
+    if (req.oidc && req.oidc.isAuthenticated()) {
+        const user = req.oidc.user;
+        const userEmail = user.email || user.email_verified;
+        
+        // Check if user has @axi.ai email domain
+        if (!userEmail || !userEmail.endsWith('@axi.ai')) {
+            console.log(`Access denied for non-@axi.ai email: ${userEmail}`);
+            return res.status(403).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Access Denied</title>
+                    <style>
+                        body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+                            text-align: center; 
+                            padding: 50px; 
+                            background: #f8fafc;
+                        }
+                        .container {
+                            max-width: 500px;
+                            margin: 0 auto;
+                            background: white;
+                            border-radius: 12px;
+                            padding: 40px;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        }
+                        .error { 
+                            color: #dc2626; 
+                            background: #fee2e2; 
+                            padding: 20px; 
+                            border-radius: 8px; 
+                            margin: 20px 0;
+                            border-left: 4px solid #dc2626;
+                        }
+                        .btn {
+                            display: inline-block;
+                            padding: 12px 24px;
+                            background: #dc2626;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 6px;
+                            margin-top: 20px;
+                        }
+                        .btn:hover {
+                            background: #b91c1c;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🚫 Access Denied</h1>
+                        <div class="error">
+                            <p><strong>This application is restricted to @axi.ai email addresses only.</strong></p>
+                            <p>Your email: <code>${userEmail || 'Not available'}</code></p>
+                        </div>
+                        <p>Please contact your administrator if you believe this is an error.</p>
+                        <a href="/logout" class="btn">Sign Out</a>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+    }
+    next();
+}
+
 // Protected HTML routes (require authentication) - Auth0 will handle redirects
 // Use wildcard to protect all HTML pages
-app.get('*.html', requiresAuth(), (req, res) => {
+app.get('*.html', requiresAuth(), checkAxiEmailDomain, (req, res) => {
     const fileName = req.path.substring(1); // Remove leading slash
     const filePath = path.join(__dirname, '..', fileName);
     res.sendFile(filePath);
 });
 
 // Also protect the root route
-app.get('/', requiresAuth(), (req, res) => {
+app.get('/', requiresAuth(), checkAxiEmailDomain, (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
 });
 
@@ -392,8 +463,22 @@ app.get('/api/user', (req, res) => {
     
     // Check if user is authenticated
     if (req.oidc && req.oidc.isAuthenticated()) {
+        const user = req.oidc.user;
+        const userEmail = user.email || user.email_verified;
+        
+        // Check if user has @axi.ai email domain
+        if (!userEmail || !userEmail.endsWith('@axi.ai')) {
+            console.log(`API access denied for non-@axi.ai email: ${userEmail}`);
+            res.status(403).json({
+                isAuthenticated: false,
+                error: 'Access restricted to @axi.ai email addresses only',
+                loginUrl: `/logout?returnTo=${encodeURIComponent(req.originalUrl)}`
+            });
+            return;
+        }
+        
         res.json({
-            user: req.oidc.user,
+            user: user,
             isAuthenticated: true
         });
     } else {
