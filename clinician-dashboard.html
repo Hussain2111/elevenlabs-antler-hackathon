@@ -786,89 +786,6 @@
             background: rgba(218, 41, 28, 0.05);
         }
         
-        /* Confirmation Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .modal {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-        }
-        
-        .modal-overlay.show .modal {
-            transform: scale(1);
-        }
-        
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-        }
-        
-        .modal-text {
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-        
-        .modal-btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-        }
-        
-        .modal-btn.secondary {
-            background: var(--border-light);
-            color: var(--text-secondary);
-        }
-        
-        .modal-btn.secondary:hover {
-            background: #d1d5db;
-        }
-        
-        .modal-btn.danger {
-            background: var(--error-red);
-            color: white;
-        }
-        
-        .modal-btn.danger:hover {
-            background: #b91c1c;
-        }
     </style>
 </head>
 <body>
@@ -900,6 +817,9 @@
                             <div class="user-name" id="dropdownUserName">Loading...</div>
                             <div class="user-email" id="dropdownUserEmail">Loading...</div>
                         </div>
+                        <a href="/" class="user-dropdown-item">
+                            🏠 Main Website
+                        </a>
                         <button class="user-dropdown-item danger" onclick="confirmLogout()">
                             🚪 Sign Out
                         </button>
@@ -1120,18 +1040,8 @@
         </div>
     </div>
 
-    <!-- Logout Confirmation Modal -->
-    <div class="modal-overlay" id="logoutModal">
-        <div class="modal">
-            <h3 class="modal-title">Confirm Sign Out</h3>
-            <p class="modal-text">Are you sure you want to sign out? You'll need to log in again to access the dashboard.</p>
-            <div class="modal-actions">
-                <button class="modal-btn secondary" onclick="closeLogoutModal()">Cancel</button>
-                <button class="modal-btn danger" onclick="performLogout()">Sign Out</button>
-            </div>
-        </div>
-    </div>
 
+    <script src="src/utils/auth.js"></script>
     <script>
         // Global variables
         let ws = null;
@@ -2060,61 +1970,9 @@
                 return `${secs}s`;
             }
         }
-        // User dropdown functionality
-        function toggleUserDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            dropdown.classList.toggle('open');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (event) => {
-            const dropdown = document.getElementById('userDropdown');
-            if (dropdown && !dropdown.contains(event.target)) {
-                dropdown.classList.remove('open');
-            }
-        });
-
-        // Load user info
-        async function loadUserInfo() {
-            try {
-                const response = await fetch('/api/user');
-                if (response.ok) {
-                    const userData = await response.json();
-                    if (userData.user) {
-                        const name = userData.user.name || userData.user.email;
-                        const email = userData.user.email;
-                        
-                        // Update dropdown content
-                        document.getElementById('dropdownUserName').textContent = `Dr. ${name}`;
-                        document.getElementById('dropdownUserEmail').textContent = email;
-                        document.getElementById('userDropdown').style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                // User not authenticated, no need to show error
-            }
-        }
-
-        // Logout confirmation
-        function confirmLogout() {
-            document.getElementById('logoutModal').classList.add('show');
-            // Close dropdown
-            document.getElementById('userDropdown').classList.remove('open');
-        }
-
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').classList.remove('show');
-        }
-
-        function performLogout() {
-            window.location.href = '/logout';
-        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Load user info
-            loadUserInfo();
-            
             // Reset analytics to waiting state initially
             resetAnalyticsToWaiting();
             

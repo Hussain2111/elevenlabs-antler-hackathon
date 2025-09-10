@@ -31,7 +31,8 @@ const authConfig = {
   routes: {
     login: '/login',
     logout: '/logout', 
-    callback: '/callback'
+    callback: '/callback',
+    postLogoutRedirect: '/'
   },
   attemptSilentLogin: true
 };
@@ -345,16 +346,16 @@ app.get('/api/config', (req, res) => {
 });
 
 // Protected HTML routes (require authentication) - Auth0 will handle redirects
+// Use wildcard to protect all HTML pages
+app.get('*.html', requiresAuth(), (req, res) => {
+    const fileName = req.path.substring(1); // Remove leading slash
+    const filePath = path.join(__dirname, '..', fileName);
+    res.sendFile(filePath);
+});
+
+// Also protect the root route
 app.get('/', requiresAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
-});
-
-app.get('/clinician-dashboard.html', requiresAuth(), (req, res) => {
-    res.sendFile(path.join(__dirname, '../clinician-dashboard.html'));
-});
-
-app.get('/test-react-client.html', requiresAuth(), (req, res) => {
-    res.sendFile(path.join(__dirname, '../test-react-client.html'));
 });
 
 // Debug endpoint to check Auth0 config and headers

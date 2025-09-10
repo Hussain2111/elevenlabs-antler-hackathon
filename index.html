@@ -298,6 +298,7 @@
     </button>
 
     <!-- Scripts -->
+    <script src="src/utils/auth.js"></script>
     <script src="src/utils/audio.js"></script>
     <script src="src/utils/synthflow.js"></script>
     <script src="src/utils/deepgram.js"></script>
@@ -342,27 +343,7 @@
         // Load config on page load
         loadConfig();
 
-        // Load user info
-        async function loadUserInfo() {
-            try {
-                const response = await fetch('/api/user');
-                if (response.ok) {
-                    const userData = await response.json();
-                    if (userData.user) {
-                        document.getElementById('userWelcome').textContent = `Welcome, ${userData.user.name || userData.user.email}`;
-                        document.getElementById('userSection').style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                // User not authenticated
-            }
-        }
-
-        // Load user info on page load
-        loadUserInfo();
-        
-
-        // User dropdown functionality
+        // User dropdown functionality (custom for index.html due to inline styles)
         function toggleUserDropdown() {
             const dropdown = document.getElementById('userDropdown');
             const menu = document.getElementById('userDropdownMenu');
@@ -381,7 +362,7 @@
             }
         }
 
-        // Close dropdown when clicking outside
+        // Close dropdown when clicking outside (custom for index.html)
         document.addEventListener('click', (event) => {
             const dropdown = document.getElementById('userDropdown');
             const menu = document.getElementById('userDropdownMenu');
@@ -395,34 +376,6 @@
                 }
             }
         });
-
-        // Update loadUserInfo function
-        async function loadUserInfo() {
-            try {
-                const response = await fetch('/api/user');
-                if (response.ok) {
-                    const userData = await response.json();
-                    if (userData.user) {
-                        const name = userData.user.name || userData.user.email;
-                        const email = userData.user.email;
-                        
-                        // Update dropdown content
-                        document.getElementById('dropdownUserName').textContent = `${name}`;
-                        document.getElementById('dropdownUserEmail').textContent = email;
-                        document.getElementById('userDropdown').style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                // User not authenticated
-            }
-        }
-
-        // Logout confirmation
-        function confirmLogout() {
-            if (confirm('Are you sure you want to sign out? You\'ll need to log in again to access the system.')) {
-                window.location.href = '/logout';
-            }
-        }
 
         // Anam Widget Functions
         let anamWidgetOpen = false;
