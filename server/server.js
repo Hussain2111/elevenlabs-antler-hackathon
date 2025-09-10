@@ -11,6 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Auth0 configuration
+console.log('Auth0 Environment Variables:');
+console.log('- AUTH0_SECRET:', process.env.AUTH0_SECRET ? 'SET' : 'MISSING');
+console.log('- AUTH0_CLIENT_ID:', process.env.AUTH0_CLIENT_ID ? 'SET' : 'MISSING');
+console.log('- AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN || 'MISSING');
+console.log('- BASE_URL:', process.env.BASE_URL || 'MISSING');
+
 const authConfig = {
   authRequired: false, // Don't require auth for API endpoints
   auth0Logout: true,
@@ -29,6 +35,11 @@ const authConfig = {
   },
   attemptSilentLogin: true
 };
+
+console.log('Final Auth0 config baseURL:', authConfig.baseURL);
+
+// Trust proxy (required for Azure Container Apps with custom domains)
+app.set('trust proxy', true);
 
 // Middleware
 app.use(cors());
@@ -329,6 +340,18 @@ app.get('/clinician-dashboard.html', requiresAuth(), (req, res) => {
 
 app.get('/test-react-client.html', requiresAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, '../test-react-client.html'));
+});
+
+// Debug endpoint to check Auth0 config
+app.get('/api/debug/auth0', (req, res) => {
+    res.json({
+        baseURL: process.env.BASE_URL,
+        authDomain: process.env.AUTH0_DOMAIN,
+        clientID: process.env.AUTH0_CLIENT_ID,
+        secretConfigured: !!process.env.AUTH0_SECRET,
+        finalBaseURL: authConfig.baseURL,
+        isAuthenticated: req.oidc?.isAuthenticated() || false
+    });
 });
 
 // API endpoint to get user info (protected)
